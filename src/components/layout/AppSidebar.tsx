@@ -52,18 +52,13 @@ export function AppSidebar() {
 
   // Sélectionner le menu selon le rôle
   const getMenuItems = () => {
-    switch (userRole) {
-      case "admin":
-        return adminMenu
-      case "proprietaire":
-        return proprietaireMenu
-      case "gerant":
-        return gerantMenu
-      case "reserviste":
-        return reservisteMenu
-      default:
-        return []
+    const menuMap: Record<UserRole, typeof adminMenu> = {
+      admin: adminMenu,
+      proprietaire: proprietaireMenu,
+      gerant: gerantMenu,
+      reserviste: reservisteMenu,
     }
+    return menuMap[userRole]
   }
 
   return (
