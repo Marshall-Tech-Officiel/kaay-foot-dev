@@ -50,23 +50,11 @@ serve(async (req) => {
 
     if (profileError) throw profileError
 
-    // 3. Envoyer l'email avec Supabase
-    const emailContent = `
-      <h1>Bienvenue sur Mini-Foot !</h1>
-      <p>Votre compte propriétaire a été créé avec succès.</p>
-      <p>Voici vos identifiants de connexion :</p>
-      <p><strong>Email :</strong> ${email}</p>
-      <p><strong>Mot de passe temporaire :</strong> ${password}</p>
-      <p>Nous vous recommandons de changer votre mot de passe lors de votre première connexion.</p>
-    `
-
-    const { error: emailError } = await supabaseAdmin.auth.admin.sendEmail(
+    // 3. Envoyer l'email en utilisant la fonction send_welcome_email
+    const { error: emailError } = await supabaseAdmin.rpc('send_welcome_email', {
       email,
-      {
-        subject: "Vos identifiants Mini-Foot",
-        html: emailContent,
-      }
-    )
+      password
+    })
 
     if (emailError) throw emailError
 
