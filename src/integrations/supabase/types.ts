@@ -9,7 +9,334 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      droits_gerants: {
+        Row: {
+          created_at: string | null
+          gerant_id: string | null
+          id: string
+          peut_annuler_reservations: boolean | null
+          peut_gerer_reservations: boolean | null
+          peut_modifier_terrain: boolean | null
+          terrain_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          gerant_id?: string | null
+          id?: string
+          peut_annuler_reservations?: boolean | null
+          peut_gerer_reservations?: boolean | null
+          peut_modifier_terrain?: boolean | null
+          terrain_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          gerant_id?: string | null
+          id?: string
+          peut_annuler_reservations?: boolean | null
+          peut_gerer_reservations?: boolean | null
+          peut_modifier_terrain?: boolean | null
+          terrain_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "droits_gerants_gerant_id_fkey"
+            columns: ["gerant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "droits_gerants_terrain_id_fkey"
+            columns: ["terrain_id"]
+            isOneToOne: false
+            referencedRelation: "terrains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paiements: {
+        Row: {
+          created_at: string | null
+          id: string
+          montant: number
+          reference_wave: string | null
+          reservation_id: string | null
+          statut: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          montant: number
+          reference_wave?: string | null
+          reservation_id?: string | null
+          statut: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          montant?: number
+          reference_wave?: string | null
+          reservation_id?: string | null
+          statut?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paiements_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photos_terrain: {
+        Row: {
+          created_at: string | null
+          id: string
+          terrain_id: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          terrain_id?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          terrain_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_terrain_terrain_id_fkey"
+            columns: ["terrain_id"]
+            isOneToOne: false
+            referencedRelation: "terrains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          nom: string
+          prenom: string
+          role: string
+          telephone: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nom: string
+          prenom: string
+          role: string
+          telephone: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nom?: string
+          prenom?: string
+          role?: string
+          telephone?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      regions: {
+        Row: {
+          id: string
+          nom: string
+        }
+        Insert: {
+          id?: string
+          nom: string
+        }
+        Update: {
+          id?: string
+          nom?: string
+        }
+        Relationships: []
+      }
+      reservations: {
+        Row: {
+          created_at: string | null
+          date_reservation: string
+          heure_debut: string
+          id: string
+          montant_total: number
+          nombre_heures: number
+          reserviste_id: string | null
+          statut: string
+          terrain_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_reservation: string
+          heure_debut: string
+          id?: string
+          montant_total: number
+          nombre_heures: number
+          reserviste_id?: string | null
+          statut: string
+          terrain_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_reservation?: string
+          heure_debut?: string
+          id?: string
+          montant_total?: number
+          nombre_heures?: number
+          reserviste_id?: string | null
+          statut?: string
+          terrain_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_reserviste_id_fkey"
+            columns: ["reserviste_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_terrain_id_fkey"
+            columns: ["terrain_id"]
+            isOneToOne: false
+            referencedRelation: "terrains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      terrains: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          heure_debut_nuit: string
+          heure_fin_nuit: string
+          id: string
+          latitude: number | null
+          localisation: string | null
+          longitude: number | null
+          nom: string
+          numero_wave: string
+          prix_jour: number
+          prix_nuit: number
+          proprietaire_id: string | null
+          region_id: string | null
+          taille: string
+          updated_at: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          heure_debut_nuit: string
+          heure_fin_nuit: string
+          id?: string
+          latitude?: number | null
+          localisation?: string | null
+          longitude?: number | null
+          nom: string
+          numero_wave: string
+          prix_jour: number
+          prix_nuit: number
+          proprietaire_id?: string | null
+          region_id?: string | null
+          taille: string
+          updated_at?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          heure_debut_nuit?: string
+          heure_fin_nuit?: string
+          id?: string
+          latitude?: number | null
+          localisation?: string | null
+          longitude?: number | null
+          nom?: string
+          numero_wave?: string
+          prix_jour?: number
+          prix_nuit?: number
+          proprietaire_id?: string | null
+          region_id?: string | null
+          taille?: string
+          updated_at?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terrains_proprietaire_id_fkey"
+            columns: ["proprietaire_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terrains_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terrains_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zones: {
+        Row: {
+          id: string
+          nom: string
+          region_id: string | null
+        }
+        Insert: {
+          id?: string
+          nom: string
+          region_id?: string | null
+        }
+        Update: {
+          id?: string
+          nom?: string
+          region_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zones_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
