@@ -93,7 +93,28 @@ export default function AdminProprietaires() {
           }
         })
 
-        if (error) throw error
+        if (error) {
+          // Check for the specific duplicate email error
+          if (error.message.includes("Un utilisateur avec cet email existe déjà")) {
+            toast({
+              variant: "destructive",
+              title: "Erreur lors de la création",
+              description: "Un compte existe déjà avec cet adresse email. Veuillez utiliser une autre adresse email.",
+            })
+            // Set specific error for the email field
+            setFormErrors(prev => ({
+              ...prev,
+              email: "Cette adresse email est déjà utilisée"
+            }))
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Erreur lors de la création",
+              description: error.message,
+            })
+          }
+          return
+        }
 
         toast({
           title: "Propriétaire créé avec succès",
