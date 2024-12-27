@@ -9,16 +9,12 @@ const corsHeaders = {
 interface CreateProprietaireBody {
   email: string
   password: string
-  userData: {
-    nom: string
-    prenom: string
-    telephone: string
-    role: string
-  }
+  nom: string
+  prenom: string
+  telephone: string
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders })
   }
@@ -29,9 +25,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     )
 
-    const { email, password, userData }: CreateProprietaireBody = await req.json()
+    const { email, password, nom, prenom, telephone }: CreateProprietaireBody = await req.json()
 
-    // Create user in auth.users
+    // 1. Créer l'utilisateur dans auth.users
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -40,20 +36,37 @@ serve(async (req) => {
 
     if (authError) throw authError
 
-    // Create profile
+    // 2. Créer le profil
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
         user_id: authData.user.id,
-        ...userData,
+        nom,
+        prenom,
+        telephone,
+        email,
+        role: "proprietaire"
       })
 
     if (profileError) throw profileError
 
-    // Send welcome email with credentials
-    const { error: emailError } = await supabaseAdmin.functions.invoke("send-welcome-email", {
-      body: { email, password },
-    })
+    // 3. Envoyer l'email avec Supabase
+    const emailContent = `
+      <h1>Bienvenue sur Mini-Foot !</h1>
+      <p>Votre compte propriétaire a été créé avec succès.</p>
+      <p>Voici vos identifiants de connexion :</p>
+      <p><strong>Email :</strong> ${email}</p>
+      <p><strong>Mot de passe temporaire :</strong> ${password}</p>
+      <p>Nous vous recommandons de changer votre mot de passe lors de votre première connexion.</p>
+    `
+
+    const { error: emailError } = await supabaseAdmin.auth.admin.sendEmail(
+      email,
+      {
+        subject: "Vos identifiants Mini-Foot",
+        html: emailContent,
+      }
+    )
 
     if (emailError) throw emailError
 
@@ -62,6 +75,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (error) {
+    console.error("Error in create-proprietaire function:", error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
