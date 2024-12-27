@@ -29,6 +29,19 @@ serve(async (req) => {
     const { email, password, nom, prenom, telephone }: CreateProprietaireBody = await req.json()
     console.log("Received data:", { email, nom, prenom, telephone })
 
+    // Vérifier si l'utilisateur existe déjà
+    console.log("Checking if user exists")
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers({
+      filter: {
+        email: email
+      }
+    })
+
+    if (existingUser?.users?.length > 0) {
+      console.log("User already exists with email:", email)
+      throw new Error("Un utilisateur avec cet email existe déjà")
+    }
+
     // 1. Créer l'utilisateur avec le mot de passe dans les metadata
     console.log("Creating user in auth.users")
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
