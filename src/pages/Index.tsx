@@ -1,14 +1,25 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { MainLayout } from "@/components/layout/MainLayout"
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <MainLayout>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-2rem)]">
+        <h1 className="text-4xl font-bold mb-2">Mini-Foot</h1>
+        <div className="h-1 w-24 bg-red-500 mb-4" />
+        <p className="text-xl text-gray-600 mb-8">
+          Gérez vos terrains de foot en toute simplicité
+        </p>
+        <div className="flex gap-4">
+          <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+            Connexion
+          </button>
+          <button className="px-6 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors">
+            Inscription
+          </button>
+        </div>
       </div>
-    </div>
-  );
-};
+    </MainLayout>
+  )
+}
 
-export default Index;
+export default Index
