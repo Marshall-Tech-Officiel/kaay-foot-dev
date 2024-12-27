@@ -20,23 +20,37 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Starting proprietaire creation process")
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     )
 
     const { email, password, nom, prenom, telephone }: CreateProprietaireBody = await req.json()
+    console.log("Received data:", { email, nom, prenom, telephone })
 
-    // 1. Créer l'utilisateur dans auth.users
+    // 1. Créer l'utilisateur avec le mot de passe dans les metadata
+    console.log("Creating user in auth.users")
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
+      user_metadata: {
+        nom,
+        prenom,
+        role: "proprietaire",
+        password: password
+      }
     })
 
-    if (authError) throw authError
+    if (authError) {
+      console.error("Error creating user:", authError)
+      throw authError
+    }
+    console.log("User created successfully:", authData.user.id)
 
     // 2. Créer le profil
+    console.log("Creating profile")
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
@@ -48,18 +62,37 @@ serve(async (req) => {
         role: "proprietaire"
       })
 
-    if (profileError) throw profileError
+    if (profileError) {
+      console.error("Error creating profile:", profileError)
+      throw profileError
+    }
+    console.log("Profile created successfully")
 
-    // 3. Envoyer l'email en utilisant la fonction send_welcome_email
-    const { error: emailError } = await supabaseAdmin.rpc('send_welcome_email', {
+    // 3. Envoyer un email avec generateLink
+    console.log("Generating signup link")
+    const { data: linkData, error: emailError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'signup',
       email,
-      password
+      options: {
+        data: {
+          nom,
+          prenom,
+          password
+        }
+      }
     })
 
-    if (emailError) throw emailError
+    if (emailError) {
+      console.error("Error generating link:", emailError)
+      throw emailError
+    }
+    console.log("Signup link generated successfully")
 
     return new Response(
-      JSON.stringify({ message: "Propriétaire créé avec succès" }),
+      JSON.stringify({ 
+        message: "Propriétaire créé avec succès",
+        signUpLink: linkData
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (error) {
