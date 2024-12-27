@@ -28,8 +28,10 @@ export function Breadcrumbs() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink as={Link} to="/">
-            <Home className="h-4 w-4" />
+          <BreadcrumbLink asChild>
+            <Link to="/">
+              <Home className="h-4 w-4" />
+            </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
         
@@ -45,8 +47,10 @@ export function Breadcrumbs() {
               {isLast ? (
                 <BreadcrumbPage>{routeLabels[segment] || segment}</BreadcrumbPage>
               ) : (
-                <BreadcrumbLink as={Link} to={path}>
-                  {routeLabels[segment] || segment}
+                <BreadcrumbLink asChild>
+                  <Link to={path}>
+                    {routeLabels[segment] || segment}
+                  </Link>
                 </BreadcrumbLink>
               )}
             </BreadcrumbItem>
