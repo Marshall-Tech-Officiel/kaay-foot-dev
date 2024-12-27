@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 
+type UserRole = "admin" | "proprietaire" | "gerant" | "reserviste"
+
 // Menu items selon le rôle
 const adminMenu = [
   { title: "Dashboard", icon: Home, path: "/admin" },
@@ -46,7 +48,7 @@ const reservisteMenu = [
 export function AppSidebar() {
   const navigate = useNavigate()
   // TODO: Récupérer le rôle de l'utilisateur depuis le contexte d'authentification
-  const userRole = "admin" // Temporaire pour le développement
+  const userRole: UserRole = "admin" // Temporaire pour le développement
 
   // Sélectionner le menu selon le rôle
   const getMenuItems = () => {
