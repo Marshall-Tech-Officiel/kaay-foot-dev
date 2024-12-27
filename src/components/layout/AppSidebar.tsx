@@ -62,17 +62,17 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar>
+    <Sidebar className="bg-[#2F7A3B]"> {/* Updated color to grass green */}
       <SidebarHeader className="p-4">
         <div className="flex flex-col items-center">
-          <h1 className="text-2xl font-bold">Mini-Foot</h1>
+          <h1 className="text-2xl font-bold text-white">Mini-Foot</h1>
           <div className="h-1 w-16 bg-red-500 mt-1" />
         </div>
       </SidebarHeader>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/70">Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {getMenuItems().map((item) => (
@@ -80,9 +80,10 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     onClick={() => navigate(item.path)}
                     tooltip={item.title}
+                    className="text-white hover:bg-white/10"
                   >
-                    <item.icon />
-                    <span>{item.title}</span>
+                    <item.icon className="text-white" />
+                    <span className="text-white">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -94,7 +95,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full justify-start text-white hover:bg-white/10"
           onClick={() => {
             // TODO: Implémenter la déconnexion
             console.log("Déconnexion")
