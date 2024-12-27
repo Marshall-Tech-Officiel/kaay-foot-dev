@@ -2,8 +2,11 @@ import { MainLayout } from "@/components/layout/MainLayout"
 import { Search } from "@/components/ui/search"
 import { TerrainCard } from "@/components/terrain/TerrainCard"
 import { Badge } from "@/components/ui/badge"
+import { useNavigate } from "react-router-dom"
 
 const Index = () => {
+  const navigate = useNavigate()
+
   return (
     <MainLayout>
       <div className="flex flex-col gap-8 max-w-7xl mx-auto">
@@ -24,10 +27,16 @@ const Index = () => {
           </div>
           
           <div className="flex gap-4">
-            <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+            <button 
+              onClick={() => navigate('/login')}
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
               Connexion
             </button>
-            <button className="px-6 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors">
+            <button 
+              onClick={() => navigate('/register')}
+              className="px-6 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
+            >
               Inscription
             </button>
           </div>
