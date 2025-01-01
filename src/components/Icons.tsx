@@ -2,7 +2,7 @@ import {
   LayoutDashboard,
   Users,
   User,
-  Pitch,
+  LayoutGrid,
   CalendarDays,
   Home,
   LogOut,
@@ -13,7 +13,7 @@ export const Icons: Record<string, LucideIcon> = {
   LayoutDashboard,
   Users,
   User,
-  Pitch,
+  Pitch: LayoutGrid, // Map Pitch to LayoutGrid
   CalendarDays,
   Home,
   LogOut,
