@@ -55,21 +55,22 @@ export function CreateProprietaireForm({ onSuccess, onCancel }: CreateProprietai
       try {
         setIsSubmitting(true)
         
-        const { error } = await supabase.functions.invoke("create-proprietaire", {
+        const { data, error } = await supabase.functions.invoke("create-proprietaire", {
           body: formData
         })
 
         if (error) {
-          if (error.message.includes("Un utilisateur avec cet email existe déjà")) {
-            toast({
-              variant: "destructive",
-              title: "Erreur lors de la création",
-              description: "Un compte existe déjà avec cet adresse email. Veuillez utiliser une autre adresse email.",
-            })
+          const errorMessage = error.message || ""
+          if (errorMessage.includes("Un utilisateur avec cet email existe déjà")) {
             setFormErrors(prev => ({
               ...prev,
               email: "Cette adresse email est déjà utilisée"
             }))
+            toast({
+              variant: "destructive",
+              title: "Erreur lors de la création",
+              description: "Un compte existe déjà avec cette adresse email. Veuillez utiliser une autre adresse email.",
+            })
             return
           }
           throw error
@@ -82,10 +83,11 @@ export function CreateProprietaireForm({ onSuccess, onCancel }: CreateProprietai
 
         onSuccess()
       } catch (error: any) {
+        console.error("Error creating proprietaire:", error)
         toast({
           variant: "destructive",
           title: "Erreur lors de la création",
-          description: error.message,
+          description: error.message || "Une erreur est survenue lors de la création du propriétaire",
         })
       } finally {
         setIsSubmitting(false)
