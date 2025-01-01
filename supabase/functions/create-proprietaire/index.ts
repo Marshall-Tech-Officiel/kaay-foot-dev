@@ -6,44 +6,54 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
-interface CreateProprietaireBody {
-  email: string
-  nom: string
-  prenom: string
-  telephone: string
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    console.log("Starting proprietaire creation process")
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     )
 
-    const { email, nom, prenom, telephone }: CreateProprietaireBody = await req.json()
-    console.log("Received data:", { email, nom, prenom, telephone })
-    
-    // Vérifier si l'utilisateur existe déjà
-    console.log("Checking if user exists")
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers({
-      filter: {
-        email: email
-      }
-    })
+    const { email, nom, prenom, telephone } = await req.json()
 
-    if (existingUser?.users?.length > 0) {
-      console.log("User already exists with email:", email)
-      throw new Error("Un utilisateur avec cet email existe déjà")
+    // 1. Vérification dans auth.users
+    const { data: authUser, error: authCheckError } = await supabaseAdmin
+      .auth.admin.listUsers()
+
+    const userExists = authUser?.users.some(user => user.email === email)
+
+    if (userExists) {
+      return new Response(
+        JSON.stringify({ error: "L'email est déjà utilisé" }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      )
     }
 
-    // 1. Créer l'utilisateur avec mot de passe fixe
-    console.log("Creating user in auth.users")
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // 2. Vérification dans profiles
+    const { data: profileUser, error: profileCheckError } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('email', email)
+      .single()
+
+    if (profileUser) {
+      return new Response(
+        JSON.stringify({ error: "L'email est déjà utilisé" }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      )
+    }
+
+    // 3. Si l'email n'existe pas, créer l'utilisateur
+    const { data: newAuthUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: "p@sser2025",
       email_confirm: true,
@@ -54,18 +64,22 @@ serve(async (req) => {
       }
     })
 
-    if (authError) {
-      console.error("Error creating user:", authError)
-      throw authError
+    if (createAuthError) {
+      console.log("Erreur création auth:", createAuthError)
+      return new Response(
+        JSON.stringify({ error: createAuthError.message }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      )
     }
-    console.log("User created successfully:", authData.user.id)
 
-    // 2. Créer le profil
-    console.log("Creating profile")
+    // 4. Créer le profil
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
-        user_id: authData.user.id,
+        user_id: newAuthUser.user.id,
         nom,
         prenom,
         telephone,
@@ -74,20 +88,27 @@ serve(async (req) => {
       })
 
     if (profileError) {
-      console.error("Error creating profile:", profileError)
-      // Si erreur lors de la création du profil, supprimer l'utilisateur auth créé
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-      throw profileError
+      console.log("Erreur création profil:", profileError)
+      await supabaseAdmin.auth.admin.deleteUser(newAuthUser.user.id)
+      return new Response(
+        JSON.stringify({ error: profileError.message }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      )
     }
-    console.log("Profile created successfully")
 
     return new Response(
-      JSON.stringify({ message: "Propriétaire créé avec succès" }),
+      JSON.stringify({ 
+        message: "Propriétaire créé avec succès",
+        userId: newAuthUser.user.id 
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
 
   } catch (error) {
-    console.error("Error in create-proprietaire function:", error)
+    console.log("Erreur générale:", error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
