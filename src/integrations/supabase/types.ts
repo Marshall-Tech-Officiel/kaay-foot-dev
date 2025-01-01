@@ -131,6 +131,7 @@ export type Database = {
           id: string
           nom: string
           prenom: string
+          proprietaire_id: string | null
           role: string
           telephone: string
           updated_at: string | null
@@ -142,6 +143,7 @@ export type Database = {
           id?: string
           nom: string
           prenom: string
+          proprietaire_id?: string | null
           role: string
           telephone: string
           updated_at?: string | null
@@ -153,12 +155,21 @@ export type Database = {
           id?: string
           nom?: string
           prenom?: string
+          proprietaire_id?: string | null
           role?: string
           telephone?: string
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_proprietaire_id_fkey"
+            columns: ["proprietaire_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       regions: {
         Row: {
