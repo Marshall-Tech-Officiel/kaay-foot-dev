@@ -1,10 +1,26 @@
+import { useState } from "react"
+import { Edit } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client"
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  User,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { TerrainCard } from "@/components/terrain/TerrainCard"
+import { TerrainDialog } from "@/components/terrain/TerrainDialog"
+import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/useAuth"
 import { MainLayout } from "@/components/layout/MainLayout"
+import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -14,20 +30,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  MapPin,
-  Users,
-  Calendar,
-  ClipboardList,
-  CheckCircle2,
-  XCircle2,
-  ArrowRight,
-  User,
-} from "lucide-react"
 
 export default function ProprietaireDashboard() {
+  const { toast } = useToast()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [editingTerrain, setEditingTerrain] = useState<any>(null)
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ["proprietaire-stats", user?.id],
@@ -66,6 +74,7 @@ export default function ProprietaireDashboard() {
               .from("terrains")
               .select("id")
               .eq("proprietaire_id", profile.id)
+              .then(({ data }) => data?.map(t => t.id) || [])
           ),
         supabase
           .from("reservations")
@@ -76,6 +85,7 @@ export default function ProprietaireDashboard() {
               .from("terrains")
               .select("id")
               .eq("proprietaire_id", profile.id)
+              .then(({ data }) => data?.map(t => t.id) || [])
           )
       ])
 
@@ -112,6 +122,7 @@ export default function ProprietaireDashboard() {
             .from("terrains")
             .select("id")
             .eq("proprietaire_id", profile.id)
+            .then(({ data }) => data?.map(t => t.id) || [])
         )
         .order("created_at", { ascending: false })
         .limit(5)
@@ -190,7 +201,7 @@ export default function ProprietaireDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Terrains</CardTitle>
-              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.terrains}</div>
@@ -270,9 +281,9 @@ export default function ProprietaireDashboard() {
                         <Badge
                           variant={
                             reservation.statut === "validee"
-                              ? "success"
+                              ? "secondary"
                               : reservation.statut === "en_attente"
-                              ? "warning"
+                              ? "outline"
                               : "default"
                           }
                         >
@@ -295,7 +306,7 @@ export default function ProprietaireDashboard() {
                             className="h-8 w-8"
                             disabled={reservation.statut !== "en_attente"}
                           >
-                            <XCircle2 className="h-4 w-4 text-red-500" />
+                            <XCircle className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
                       </TableCell>
