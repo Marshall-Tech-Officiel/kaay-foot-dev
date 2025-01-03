@@ -58,10 +58,10 @@ export function ProfileInfoForm() {
       }
 
       return {
-        nom: data.nom,
-        prenom: data.prenom,
-        email: data.email,
-        telephone: data.telephone,
+        nom: data.nom || "",
+        prenom: data.prenom || "",
+        email: data.email || "",
+        telephone: data.telephone || "",
       }
     },
   })
