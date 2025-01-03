@@ -5,13 +5,16 @@ import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
 import { TerrainCard } from "@/components/terrain/TerrainCard"
 import { TerrainDialog } from "@/components/terrain/TerrainDialog"
+import { TerrainStats } from "@/components/terrain/TerrainStats"
 import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function AdminTerrains() {
   const { toast } = useToast()
   const [editingTerrain, setEditingTerrain] = useState<any>(null)
+  const [selectedTerrain, setSelectedTerrain] = useState<any>(null)
 
   const { data: terrains, isLoading, refetch } = useQuery({
     queryKey: ["terrains"],
@@ -61,12 +64,20 @@ export default function AdminTerrains() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {terrains?.map((terrain) => (
               <div key={terrain.id} className="relative group">
-                <TerrainCard terrain={terrain} showProprietaire={true} />
+                <div 
+                  onClick={() => setSelectedTerrain(terrain)}
+                  className="cursor-pointer transition-transform hover:scale-[1.02]"
+                >
+                  <TerrainCard terrain={terrain} showProprietaire={true} />
+                </div>
                 <Button
                   variant="secondary"
                   size="icon"
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => setEditingTerrain(terrain)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEditingTerrain(terrain)
+                  }}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -89,6 +100,15 @@ export default function AdminTerrains() {
           terrain={editingTerrain}
           mode="edit"
         />
+
+        <Dialog open={!!selectedTerrain} onOpenChange={(open) => !open && setSelectedTerrain(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{selectedTerrain?.nom} - Statistiques</DialogTitle>
+            </DialogHeader>
+            {selectedTerrain && <TerrainStats terrainId={selectedTerrain.id} />}
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   )
