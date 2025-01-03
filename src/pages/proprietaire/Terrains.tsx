@@ -7,6 +7,8 @@ import { TerrainCard } from "@/components/terrain/TerrainCard"
 import { TerrainDialog } from "@/components/terrain/TerrainDialog"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/useAuth"
+import { MainLayout } from "@/components/layout/MainLayout"
+import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 
 export default function ProprietaireTerrains() {
   const { toast } = useToast()
@@ -43,57 +45,64 @@ export default function ProprietaireTerrains() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Mes Terrains</h1>
-        <p className="text-muted-foreground mt-2">
-          Gérez les détails de vos terrains. La création et la suppression des terrains sont réservées aux administrateurs.
-        </p>
+    <MainLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Breadcrumbs />
+            <h1 className="text-2xl font-bold mt-2">Mes Terrains</h1>
+            <p className="text-muted-foreground mt-2">
+              Gérez les détails de vos terrains. La création et la suppression des terrains sont réservées aux administrateurs.
+            </p>
+          </div>
+        </div>
+
+        {terrains?.length === 0 ? (
+          <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed">
+            <p className="text-muted-foreground">Aucun terrain ne vous a encore été attribué</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {terrains?.map((terrain) => (
+              <div key={terrain.id} className="relative group">
+                <TerrainCard terrain={terrain} />
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => setEditingTerrain(terrain)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <TerrainDialog
+          open={!!editingTerrain}
+          onOpenChange={(open) => !open && setEditingTerrain(null)}
+          onSuccess={() => {
+            setEditingTerrain(null)
+            refetch()
+            toast({
+              title: "Terrain modifié",
+              description: "Les modifications ont été enregistrées avec succès.",
+            })
+          }}
+          terrain={editingTerrain}
+          mode="edit"
+        />
       </div>
-
-      {terrains?.length === 0 ? (
-        <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed">
-          <p className="text-muted-foreground">Aucun terrain ne vous a encore été attribué</p>
-        </div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {terrains?.map((terrain) => (
-            <div key={terrain.id} className="relative group">
-              <TerrainCard terrain={terrain} />
-              <Button
-                variant="secondary"
-                size="icon"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => setEditingTerrain(terrain)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <TerrainDialog
-        open={!!editingTerrain}
-        onOpenChange={(open) => !open && setEditingTerrain(null)}
-        onSuccess={() => {
-          setEditingTerrain(null)
-          refetch()
-          toast({
-            title: "Terrain modifié",
-            description: "Les modifications ont été enregistrées avec succès.",
-          })
-        }}
-        terrain={editingTerrain}
-        mode="edit"
-      />
-    </div>
+    </MainLayout>
   )
 }
