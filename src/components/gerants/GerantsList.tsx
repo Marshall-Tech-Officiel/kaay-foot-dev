@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
+import { useEffect } from "react"
 import {
   Table,
   TableBody,
@@ -17,7 +18,7 @@ interface GerantsListProps {
 export function GerantsList({ searchQuery }: GerantsListProps) {
   const { user } = useAuth()
 
-  const { data: gerants, isLoading } = useQuery({
+  const { data: gerants, isLoading, refetch } = useQuery({
     queryKey: ["gerants", searchQuery],
     queryFn: async () => {
       // D'abord, récupérer l'ID du profil du propriétaire connecté
@@ -48,6 +49,30 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
     },
     enabled: !!user,
   })
+
+  // Écouter les changements en temps réel
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Écoute tous les événements (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'profiles',
+          filter: `role=eq.gerant`
+        },
+        () => {
+          // Rafraîchir la liste quand il y a un changement
+          refetch()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [refetch])
 
   if (isLoading) {
     return (

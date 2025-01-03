@@ -1,94 +1,103 @@
 import { useQuery } from "@tanstack/react-query"
-import { DataTable } from "@/components/ui/data-table"
-import { Button } from "@/components/ui/button"
-import { Edit, Trash2 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
-import { format } from "date-fns"
-import { fr } from "date-fns/locale"
-
-interface Profile {
-  id: string
-  nom: string
-  prenom: string
-  email: string
-  telephone: string
-  created_at: string
-}
+import { useEffect } from "react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface ProprietairesListProps {
   searchQuery: string
 }
 
 export function ProprietairesList({ searchQuery }: ProprietairesListProps) {
-  const { data: proprietaires, isLoading } = useQuery({
+  const { data: proprietaires, isLoading, refetch } = useQuery({
     queryKey: ["proprietaires", searchQuery],
     queryFn: async () => {
-      const query = supabase
+      let query = supabase
         .from("profiles")
         .select("*")
         .eq("role", "proprietaire")
-        .order("created_at", { ascending: false })
 
       if (searchQuery) {
-        query.or(`nom.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
+        query = query.or(`nom.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
       }
 
-      const { data, error } = await query
+      const { data, error } = await query.order("created_at", { ascending: false })
       if (error) throw error
-      return data as Profile[]
+      return data
     },
   })
 
-  const columns = [
-    {
-      header: "Nom",
-      accessorKey: "nom" as keyof Profile,
-    },
-    {
-      header: "Prénom",
-      accessorKey: "prenom" as keyof Profile,
-    },
-    {
-      header: "Email",
-      accessorKey: "email" as keyof Profile,
-    },
-    {
-      header: "Téléphone",
-      accessorKey: "telephone" as keyof Profile,
-    },
-    {
-      header: "Date création",
-      accessorKey: "created_at" as keyof Profile,
-      cell: (value: any) => format(new Date(value), "dd MMMM yyyy", { locale: fr }),
-    },
-    {
-      header: "Actions",
-      accessorKey: "id" as keyof Profile,
-      cell: (value: any) => (
-        <div className="flex gap-2">
-          <Button variant="ghost" size="icon">
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ]
+  // Écouter les changements en temps réel
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Écoute tous les événements (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'profiles',
+          filter: `role=eq.proprietaire`
+        },
+        () => {
+          // Rafraîchir la liste quand il y a un changement
+          refetch()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [refetch])
 
   if (isLoading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex justify-center items-center h-48">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   return (
-    <DataTable
-      columns={columns}
-      data={proprietaires || []}
-    />
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom</TableHead>
+            <TableHead>Prénom</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Téléphone</TableHead>
+            <TableHead>Date de création</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {proprietaires?.map((proprietaire) => (
+            <TableRow key={proprietaire.id}>
+              <TableCell>{proprietaire.nom}</TableCell>
+              <TableCell>{proprietaire.prenom}</TableCell>
+              <TableCell>{proprietaire.email}</TableCell>
+              <TableCell>{proprietaire.telephone}</TableCell>
+              <TableCell>
+                {new Date(proprietaire.created_at).toLocaleDateString()}
+              </TableCell>
+            </TableRow>
+          ))}
+          {proprietaires?.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-4">
+                Aucun propriétaire trouvé
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
