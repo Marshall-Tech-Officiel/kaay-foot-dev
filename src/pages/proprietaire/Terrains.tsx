@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
 import { TerrainCard } from "@/components/terrain/TerrainCard"
+import { TerrainDialog } from "@/components/terrain/TerrainDialog"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/hooks/useAuth"
 
@@ -12,7 +13,7 @@ export default function ProprietaireTerrains() {
   const { user } = useAuth()
   const [isCreating, setIsCreating] = useState(false)
 
-  const { data: terrains, isLoading } = useQuery({
+  const { data: terrains, isLoading, refetch } = useQuery({
     queryKey: ["terrains", user?.id],
     queryFn: async () => {
       const { data: profile } = await supabase
@@ -77,6 +78,12 @@ export default function ProprietaireTerrains() {
           ))}
         </div>
       )}
+
+      <TerrainDialog
+        open={isCreating}
+        onOpenChange={setIsCreating}
+        onSuccess={refetch}
+      />
     </div>
   )
 }
