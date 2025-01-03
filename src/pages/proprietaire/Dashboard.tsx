@@ -50,6 +50,14 @@ export default function ProprietaireDashboard() {
 
       const today = new Date().toISOString().split('T')[0]
 
+      // Récupérer d'abord les IDs des terrains
+      const { data: terrains } = await supabase
+        .from("terrains")
+        .select("id")
+        .eq("proprietaire_id", profile.id)
+
+      const terrainIds = terrains?.map(t => t.id) || []
+
       const [
         { count: terrainsCount },
         { count: gerantsCount },
@@ -69,24 +77,12 @@ export default function ProprietaireDashboard() {
           .from("reservations")
           .select("*", { count: "exact", head: true })
           .eq("date_reservation", today)
-          .in("terrain_id", 
-            supabase
-              .from("terrains")
-              .select("id")
-              .eq("proprietaire_id", profile.id)
-              .then(({ data }) => data?.map(t => t.id) || [])
-          ),
+          .in("terrain_id", terrainIds),
         supabase
           .from("reservations")
           .select("*", { count: "exact", head: true })
           .eq("statut", "en_attente")
-          .in("terrain_id", 
-            supabase
-              .from("terrains")
-              .select("id")
-              .eq("proprietaire_id", profile.id)
-              .then(({ data }) => data?.map(t => t.id) || [])
-          )
+          .in("terrain_id", terrainIds)
       ])
 
       return {
@@ -110,6 +106,14 @@ export default function ProprietaireDashboard() {
 
       if (!profile) throw new Error("Profile not found")
 
+      // Récupérer d'abord les IDs des terrains
+      const { data: terrains } = await supabase
+        .from("terrains")
+        .select("id")
+        .eq("proprietaire_id", profile.id)
+
+      const terrainIds = terrains?.map(t => t.id) || []
+
       const { data } = await supabase
         .from("reservations")
         .select(`
@@ -117,13 +121,7 @@ export default function ProprietaireDashboard() {
           terrain:terrains(nom),
           reserviste:profiles(nom, prenom)
         `)
-        .in("terrain_id", 
-          supabase
-            .from("terrains")
-            .select("id")
-            .eq("proprietaire_id", profile.id)
-            .then(({ data }) => data?.map(t => t.id) || [])
-        )
+        .in("terrain_id", terrainIds)
         .order("created_at", { ascending: false })
         .limit(5)
 
