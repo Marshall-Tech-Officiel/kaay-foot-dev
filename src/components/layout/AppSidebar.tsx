@@ -68,7 +68,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="bg-[#2F7A3B]">
+    <Sidebar className="h-full bg-[#2F7A3B]">
       <SidebarHeader className="p-4">
         <div className="flex flex-col items-center">
           <h1 className="text-2xl font-bold text-white">Mini-Foot</h1>
