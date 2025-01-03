@@ -19,7 +19,7 @@ const Error403 = lazy(() => import("./pages/Error403"))
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"))
 const AdminTerrains = lazy(() => import("./pages/admin/Terrains"))
 const AdminProprietaires = lazy(() => import("./pages/admin/Proprietaires"))
-const AdminProfile = lazy(() => import("./pages/admin/Profile"))
+const AdminProfil = lazy(() => import("./pages/admin/Profil"))
 
 // Pages Propriétaire
 const ProprietaireDashboard = lazy(() => import("./pages/proprietaire/Dashboard"))
@@ -82,9 +82,9 @@ const App = () => (
                 <AdminProprietaires />
               </PrivateRoute>
             } />
-            <Route path="/admin/profile" element={
+            <Route path="/admin/profil" element={
               <PrivateRoute allowedRoles={["admin"]}>
-                <AdminProfile />
+                <AdminProfil />
               </PrivateRoute>
             } />
 
