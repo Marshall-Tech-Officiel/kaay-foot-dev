@@ -34,6 +34,7 @@ const terrainSchema = z.object({
   heure_fin_nuit: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Format invalide (HH:mm)"),
   region_id: z.string().uuid("Veuillez sélectionner une région"),
   zone_id: z.string().uuid("Veuillez sélectionner une zone"),
+  taille: z.string().min(1, "La taille est requise"),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
 })
@@ -57,6 +58,7 @@ export function TerrainForm({ onSubmit, onCancel, initialData }: TerrainFormProp
       prix_nuit: 0,
       heure_debut_nuit: "18:00",
       heure_fin_nuit: "06:00",
+      taille: "",
       ...initialData,
     },
   })
@@ -123,6 +125,29 @@ export function TerrainForm({ onSubmit, onCancel, initialData }: TerrainFormProp
               <FormControl>
                 <Textarea {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="taille"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Taille du terrain</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez une taille" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="5v5">5 contre 5</SelectItem>
+                  <SelectItem value="7v7">7 contre 7</SelectItem>
+                  <SelectItem value="11v11">11 contre 11</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
