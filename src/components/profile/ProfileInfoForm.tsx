@@ -30,25 +30,8 @@ export function ProfileInfoForm() {
 
   const form = useForm<ProfileFormValues>({
     defaultValues: async () => {
-      if (!user) return {
-        nom: "",
-        prenom: "",
-        email: "",
-        telephone: ""
-      }
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single()
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de charger vos informations",
-        })
+      if (!user) {
+        console.log("No user found")
         return {
           nom: "",
           prenom: "",
@@ -56,12 +39,45 @@ export function ProfileInfoForm() {
           telephone: ""
         }
       }
+      
+      try {
+        console.log("Fetching user profile data for user:", user.id)
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .single()
 
-      return {
-        nom: data.nom || "",
-        prenom: data.prenom || "",
-        email: data.email || "",
-        telephone: data.telephone || "",
+        if (error) {
+          console.error("Error fetching profile:", error)
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Impossible de charger vos informations",
+          })
+          return {
+            nom: "",
+            prenom: "",
+            email: "",
+            telephone: ""
+          }
+        }
+
+        console.log("Profile data fetched:", data)
+        return {
+          nom: data.nom || "",
+          prenom: data.prenom || "",
+          email: data.email || "",
+          telephone: data.telephone || "",
+        }
+      } catch (error) {
+        console.error("Error in defaultValues:", error)
+        return {
+          nom: "",
+          prenom: "",
+          email: "",
+          telephone: ""
+        }
       }
     },
   })
