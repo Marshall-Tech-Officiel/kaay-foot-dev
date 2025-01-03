@@ -31,7 +31,7 @@ const MENUS_BY_ROLE: Record<string, Array<{ icon: string; label: string; path: s
 
 export function Navbar() {
   const [userRole, setUserRole] = useState<string | null>(null)
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -56,13 +56,21 @@ export function Navbar() {
   const menuItems = userRole ? MENUS_BY_ROLE[userRole] : []
 
   return (
-    <nav className="h-full bg-white border-r shadow-sm">
+    <nav
+      className={`fixed left-0 top-0 z-50 h-full bg-white transition-all duration-300 ${
+        isOpen ? 'w-64' : 'w-20'
+      } border-r shadow-sm`}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
       <div className="flex h-full flex-col">
         <div className="flex h-16 items-center justify-center border-b">
           <img 
             src="/logo.png" 
             alt="Logo" 
-            className="h-12 w-auto"
+            className={`transition-all duration-300 ${
+              isOpen ? 'h-12 w-auto' : 'h-8 w-auto'
+            }`}
           />
         </div>
 
@@ -73,10 +81,12 @@ export function Navbar() {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className="flex w-full items-center justify-start space-x-3 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100"
+                className={`flex w-full items-center rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100 ${
+                  isOpen ? 'justify-start space-x-3' : 'justify-center'
+                }`}
               >
                 <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                {isOpen && <span>{item.label}</span>}
               </button>
             )
           })}
@@ -88,10 +98,12 @@ export function Navbar() {
               await supabase.auth.signOut()
               navigate('/login')
             }}
-            className="flex w-full items-center justify-start space-x-3 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100"
+            className={`flex w-full items-center rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100 ${
+              isOpen ? 'justify-start space-x-3' : 'justify-center'
+            }`}
           >
             <Icons.LogOut className="h-5 w-5" />
-            <span>Déconnexion</span>
+            {isOpen && <span>Déconnexion</span>}
           </button>
         </div>
       </div>
