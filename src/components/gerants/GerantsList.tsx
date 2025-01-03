@@ -30,16 +30,18 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
       if (profileError) throw profileError
 
       // Ensuite, récupérer tous les gérants associés à ce propriétaire
-      const { data, error } = await supabase
+      let query = supabase
         .from("profiles")
         .select("*")
         .eq("proprietaire_id", profileData.id)
         .eq("role", "gerant")
-        .ilike(
-          searchQuery ? "nom" : "id",
-          searchQuery ? `%${searchQuery}%` : "%"
-        )
-        .order("created_at", { ascending: false })
+
+      // Ajouter la recherche si un terme est fourni
+      if (searchQuery) {
+        query = query.or(`nom.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false })
 
       if (error) throw error
       return data
