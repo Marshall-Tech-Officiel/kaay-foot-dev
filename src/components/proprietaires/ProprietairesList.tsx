@@ -1,6 +1,6 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
-import { useEffect } from "react"
 import {
   Table,
   TableBody,
@@ -9,12 +9,113 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DataTable } from "@/components/ui/data-table"
+
+interface ProprietaireDetailsProps {
+  proprietaireId: string | null
+  onClose: () => void
+}
+
+const ProprietaireDetails = ({ proprietaireId, onClose }: ProprietaireDetailsProps) => {
+  const { data: terrains } = useQuery({
+    queryKey: ["terrains", proprietaireId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("terrains")
+        .select("*")
+        .eq("proprietaire_id", proprietaireId)
+      if (error) throw error
+      return data
+    },
+    enabled: !!proprietaireId,
+  })
+
+  const { data: gerants } = useQuery({
+    queryKey: ["gerants", proprietaireId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("proprietaire_id", proprietaireId)
+        .eq("role", "gerant")
+      if (error) throw error
+      return data
+    },
+    enabled: !!proprietaireId,
+  })
+
+  const terrainsColumns = [
+    { header: "Nom", accessorKey: "nom" },
+    { header: "Prix jour", accessorKey: "prix_jour" },
+    { header: "Prix nuit", accessorKey: "prix_nuit" },
+    { header: "Localisation", accessorKey: "localisation" },
+  ]
+
+  const gerantsColumns = [
+    { header: "Nom", accessorKey: "nom" },
+    { header: "Prénom", accessorKey: "prenom" },
+    { header: "Email", accessorKey: "email" },
+    { header: "Téléphone", accessorKey: "telephone" },
+  ]
+
+  return (
+    <Dialog open={!!proprietaireId} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Détails du propriétaire</DialogTitle>
+        </DialogHeader>
+        
+        <Tabs defaultValue="terrains" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="terrains">Terrains</TabsTrigger>
+            <TabsTrigger value="gerants">Gérants</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="terrains">
+            {terrains?.length === 0 ? (
+              <p className="text-center py-4 text-muted-foreground">
+                Aucun terrain trouvé
+              </p>
+            ) : (
+              <DataTable
+                columns={terrainsColumns}
+                data={terrains || []}
+              />
+            )}
+          </TabsContent>
+          
+          <TabsContent value="gerants">
+            {gerants?.length === 0 ? (
+              <p className="text-center py-4 text-muted-foreground">
+                Aucun gérant trouvé
+              </p>
+            ) : (
+              <DataTable
+                columns={gerantsColumns}
+                data={gerants || []}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 interface ProprietairesListProps {
   searchQuery: string
 }
 
 export function ProprietairesList({ searchQuery }: ProprietairesListProps) {
+  const [selectedProprietaireId, setSelectedProprietaireId] = useState<string | null>(null)
+  
   const { data: proprietaires, isLoading, refetch } = useQuery({
     queryKey: ["proprietaires", searchQuery],
     queryFn: async () => {
@@ -40,13 +141,12 @@ export function ProprietairesList({ searchQuery }: ProprietairesListProps) {
       .on(
         'postgres_changes',
         {
-          event: '*', // Écoute tous les événements (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'profiles',
           filter: `role=eq.proprietaire`
         },
         () => {
-          // Rafraîchir la liste quand il y a un changement
           refetch()
         }
       )
@@ -66,38 +166,49 @@ export function ProprietairesList({ searchQuery }: ProprietairesListProps) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Prénom</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Téléphone</TableHead>
-            <TableHead>Date de création</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {proprietaires?.map((proprietaire) => (
-            <TableRow key={proprietaire.id}>
-              <TableCell>{proprietaire.nom}</TableCell>
-              <TableCell>{proprietaire.prenom}</TableCell>
-              <TableCell>{proprietaire.email}</TableCell>
-              <TableCell>{proprietaire.telephone}</TableCell>
-              <TableCell>
-                {new Date(proprietaire.created_at).toLocaleDateString()}
-              </TableCell>
-            </TableRow>
-          ))}
-          {proprietaires?.length === 0 && (
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
-                Aucun propriétaire trouvé
-              </TableCell>
+              <TableHead>Nom</TableHead>
+              <TableHead>Prénom</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Téléphone</TableHead>
+              <TableHead>Date de création</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {proprietaires?.map((proprietaire) => (
+              <TableRow 
+                key={proprietaire.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => setSelectedProprietaireId(proprietaire.id)}
+              >
+                <TableCell>{proprietaire.nom}</TableCell>
+                <TableCell>{proprietaire.prenom}</TableCell>
+                <TableCell>{proprietaire.email}</TableCell>
+                <TableCell>{proprietaire.telephone}</TableCell>
+                <TableCell>
+                  {new Date(proprietaire.created_at).toLocaleDateString()}
+                </TableCell>
+              </TableRow>
+            ))}
+            {proprietaires?.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
+                  Aucun propriétaire trouvé
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <ProprietaireDetails
+        proprietaireId={selectedProprietaireId}
+        onClose={() => setSelectedProprietaireId(null)}
+      />
+    </>
   )
 }
