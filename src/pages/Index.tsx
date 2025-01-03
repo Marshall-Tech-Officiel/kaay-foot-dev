@@ -3,71 +3,30 @@ import { Search } from "@/components/ui/search"
 import { TerrainCard } from "@/components/terrain/TerrainCard"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 
 const Index = () => {
   const navigate = useNavigate()
 
-  // Sample terrain data for the featured section
-  const featuredTerrains = [
-    {
-      id: "1",
-      nom: "Terrain Olympique",
-      localisation: "Dakar, Parcelles Assainies",
-      prix_jour: 15000,
-      prix_nuit: 20000,
-      taille: "Standard",
-      photos: [{ url: "https://images.unsplash.com/photo-1615729947596-a598e5de0ab3" }],
-      created_at: new Date().toISOString(),
-      description: "",
-      heure_debut_nuit: "18:00:00",
-      heure_fin_nuit: "06:00:00",
-      latitude: 0,
-      longitude: 0,
-      numero_wave: "",
-      proprietaire_id: null,
-      region_id: null,
-      updated_at: new Date().toISOString(),
-      zone_id: null
-    },
-    {
-      id: "2",
-      nom: "Terrain Elite",
-      localisation: "Dakar, Almadies",
-      prix_jour: 20000,
-      prix_nuit: 25000,
-      taille: "Premium",
-      created_at: new Date().toISOString(),
-      description: "",
-      heure_debut_nuit: "18:00:00",
-      heure_fin_nuit: "06:00:00",
-      latitude: 0,
-      longitude: 0,
-      numero_wave: "",
-      proprietaire_id: null,
-      region_id: null,
-      updated_at: new Date().toISOString(),
-      zone_id: null
-    },
-    {
-      id: "3",
-      nom: "Terrain Central",
-      localisation: "Dakar, Plateau",
-      prix_jour: 18000,
-      prix_nuit: 22000,
-      taille: "Standard",
-      created_at: new Date().toISOString(),
-      description: "",
-      heure_debut_nuit: "18:00:00",
-      heure_fin_nuit: "06:00:00",
-      latitude: 0,
-      longitude: 0,
-      numero_wave: "",
-      proprietaire_id: null,
-      region_id: null,
-      updated_at: new Date().toISOString(),
-      zone_id: null
+  const { data: featuredTerrains, isLoading } = useQuery({
+    queryKey: ['featured-terrains'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('terrains')
+        .select(`
+          *,
+          zone:zones(nom),
+          region:regions(nom),
+          photos:photos_terrain(url)
+        `)
+        .limit(3)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data
     }
-  ]
+  })
 
   return (
     <MainLayout>
@@ -75,8 +34,8 @@ const Index = () => {
         {/* Hero Section */}
         <div className="flex flex-col items-center justify-center min-h-[40vh] text-center px-4">
           <h1 className="text-4xl font-bold mb-2">Mini-Foot</h1>
-          <div className="h-1 w-24 bg-red-500 mb-4" />
-          <p className="text-xl text-gray-600 mb-8">
+          <div className="h-1 w-24 bg-primary mb-4" />
+          <p className="text-xl text-muted-foreground mb-8">
             Gérez vos terrains de foot en toute simplicité
           </p>
           
@@ -105,13 +64,21 @@ const Index = () => {
         </div>
 
         {/* Featured Terrains Section */}
-        <section className="px-4">
+        <section className="px-4 pb-8">
           <h2 className="text-2xl font-semibold mb-6">Terrains à la une</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredTerrains.map((terrain) => (
-              <TerrainCard key={terrain.id} terrain={terrain} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-[400px] bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredTerrains?.map((terrain) => (
+                <TerrainCard key={terrain.id} terrain={terrain} />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </MainLayout>
