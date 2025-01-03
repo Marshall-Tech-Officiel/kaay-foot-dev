@@ -87,16 +87,16 @@ export function TerrainStats({ terrainId }: TerrainStatsProps) {
   if (!stats) return null
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
+      <div className="grid gap-3 grid-cols-3">
+        <Card className="col-span-1">
+          <CardHeader className="p-4">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Aujourd'hui
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.today["Montant total"].toLocaleString()} FCFA</div>
+          <CardContent className="p-4 pt-0">
+            <div className="text-xl font-bold">{stats.today["Montant total"].toLocaleString()} FCFA</div>
             <div className="text-xs text-muted-foreground mt-1">
               {stats.today["Réservations jour"]} réservations jour
               <br />
@@ -104,39 +104,39 @@ export function TerrainStats({ terrainId }: TerrainStatsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="col-span-1">
+          <CardHeader className="p-4">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Cette semaine
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.weeklyTotal.toLocaleString()} FCFA</div>
+          <CardContent className="p-4 pt-0">
+            <div className="text-xl font-bold">{stats.weeklyTotal.toLocaleString()} FCFA</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="col-span-1">
+          <CardHeader className="p-4">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Ce mois
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.monthlyTotal.toLocaleString()} FCFA</div>
+          <CardContent className="p-4 pt-0">
+            <div className="text-xl font-bold">{stats.monthlyTotal.toLocaleString()} FCFA</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Statistiques détaillées</CardTitle>
+        <CardHeader className="p-4">
+          <CardTitle className="text-base">Statistiques détaillées</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
           <Tabs defaultValue="reservations">
-            <TabsList>
+            <TabsList className="mb-4">
               <TabsTrigger value="reservations">Réservations</TabsTrigger>
               <TabsTrigger value="revenus">Revenus</TabsTrigger>
             </TabsList>
-            <TabsContent value="reservations" className="h-[300px]">
+            <TabsContent value="reservations" className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.dailyStats}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -148,7 +148,7 @@ export function TerrainStats({ terrainId }: TerrainStatsProps) {
                 </BarChart>
               </ResponsiveContainer>
             </TabsContent>
-            <TabsContent value="revenus" className="h-[300px]">
+            <TabsContent value="revenus" className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.dailyStats}>
                   <CartesianGrid strokeDasharray="3 3" />

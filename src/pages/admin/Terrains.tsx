@@ -102,9 +102,9 @@ export default function AdminTerrains() {
         />
 
         <Dialog open={!!selectedTerrain} onOpenChange={(open) => !open && setSelectedTerrain(null)}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{selectedTerrain?.nom} - Statistiques</DialogTitle>
+              <DialogTitle className="text-lg font-semibold">{selectedTerrain?.nom} - Statistiques</DialogTitle>
             </DialogHeader>
             {selectedTerrain && <TerrainStats terrainId={selectedTerrain.id} />}
           </DialogContent>
