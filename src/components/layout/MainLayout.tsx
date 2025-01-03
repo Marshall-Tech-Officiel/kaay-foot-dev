@@ -28,8 +28,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
-              <div className="h-full">
+            <SheetContent side="left" className="p-0 w-72 h-full">
+              <div className="h-full overflow-y-auto">
                 <AppSidebar />
               </div>
             </SheetContent>
