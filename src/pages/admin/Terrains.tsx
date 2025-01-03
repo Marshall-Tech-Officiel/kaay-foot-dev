@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Edit } from "lucide-react"
+import { Edit, Plus } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -10,11 +10,13 @@ import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AdminTerrainDialog } from "@/components/terrain/AdminTerrainDialog"
 
 export default function AdminTerrains() {
   const { toast } = useToast()
   const [editingTerrain, setEditingTerrain] = useState<any>(null)
   const [selectedTerrain, setSelectedTerrain] = useState<any>(null)
+  const [isCreating, setIsCreating] = useState(false)
 
   const { data: terrains, isLoading, refetch } = useQuery({
     queryKey: ["terrains"],
@@ -48,12 +50,18 @@ export default function AdminTerrains() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <Breadcrumbs />
-          <h1 className="text-2xl font-bold mt-2">Gestion des Terrains</h1>
-          <p className="text-muted-foreground mt-2">
-            Gérez tous les terrains de l'application.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <Breadcrumbs />
+            <h1 className="text-2xl font-bold mt-2">Gestion des Terrains</h1>
+            <p className="text-muted-foreground mt-2">
+              Gérez tous les terrains de l'application.
+            </p>
+          </div>
+          <Button onClick={() => setIsCreating(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un terrain
+          </Button>
         </div>
 
         {terrains?.length === 0 ? (
@@ -99,6 +107,15 @@ export default function AdminTerrains() {
           }}
           terrain={editingTerrain}
           mode="edit"
+        />
+
+        <AdminTerrainDialog
+          open={isCreating}
+          onOpenChange={setIsCreating}
+          onSuccess={() => {
+            setIsCreating(false)
+            refetch()
+          }}
         />
 
         <Dialog open={!!selectedTerrain} onOpenChange={(open) => !open && setSelectedTerrain(null)}>
