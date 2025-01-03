@@ -4,6 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Navbar } from "./Navbar"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -30,7 +31,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-72 h-full">
               <div className="h-full overflow-y-auto">
-                <AppSidebar />
+                <Navbar />
               </div>
             </SheetContent>
           </Sheet>
