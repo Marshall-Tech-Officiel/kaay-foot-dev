@@ -1,5 +1,6 @@
 import { Home, Users, Briefcase, Calendar, User, LogOut } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/hooks/useAuth"
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { supabase } from "@/integrations/supabase/client"
 
 type UserRole = "admin" | "proprietaire" | "gerant" | "reserviste"
 
@@ -47,8 +49,7 @@ const reservisteMenu = [
 
 export function AppSidebar() {
   const navigate = useNavigate()
-  // TODO: Récupérer le rôle de l'utilisateur depuis le contexte d'authentification
-  const userRole: UserRole = "admin" // Temporaire pour le développement
+  const { role } = useAuth()
 
   // Sélectionner le menu selon le rôle
   const getMenuItems = () => {
@@ -58,7 +59,12 @@ export function AppSidebar() {
       gerant: gerantMenu,
       reserviste: reservisteMenu,
     }
-    return menuMap[userRole]
+    return menuMap[role as UserRole] || adminMenu
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate('/login')
   }
 
   return (
@@ -96,10 +102,7 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start text-white hover:bg-white/10"
-          onClick={() => {
-            // TODO: Implémenter la déconnexion
-            console.log("Déconnexion")
-          }}
+          onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Déconnexion</span>
