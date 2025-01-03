@@ -8,11 +8,15 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-[#E0F2E9] to-[#CDE9E0]">
+      <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1 p-6 transition-all duration-200">
-          {children}
-        </main>
+        <div className="flex-1 bg-gradient-to-br from-[#E0F2E9] to-[#CDE9E0]">
+          <div className="h-full w-full overflow-x-auto">
+            <main className="p-6">
+              {children}
+            </main>
+          </div>
+        </div>
       </div>
     </SidebarProvider>
   )

@@ -13,7 +13,7 @@ export default function AdminProprietaires() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto p-6">
+      <div className="w-full">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold">Gestion des Propriétaires</h1>
           
@@ -52,7 +52,9 @@ export default function AdminProprietaires() {
           </div>
         </div>
 
-        <ProprietairesList searchQuery={searchQuery} />
+        <div className="overflow-x-auto">
+          <ProprietairesList searchQuery={searchQuery} />
+        </div>
       </div>
     </MainLayout>
   )
