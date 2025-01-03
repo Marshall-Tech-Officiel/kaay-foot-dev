@@ -1,41 +1,27 @@
 import { useState } from "react"
-import { Edit } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import {
   LayoutDashboard,
   Users,
   Calendar,
   ClipboardList,
-  CheckCircle2,
-  XCircle,
   ArrowRight,
-  User,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { TerrainCard } from "@/components/terrain/TerrainCard"
-import { TerrainDialog } from "@/components/terrain/TerrainDialog"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/useAuth"
 import { MainLayout } from "@/components/layout/MainLayout"
-import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { StatsCard } from "@/components/dashboard/StatsCard"
+import { RecentReservations } from "@/components/dashboard/RecentReservations"
+import { TerrainOverview } from "@/components/dashboard/TerrainOverview"
+import { GerantOverview } from "@/components/dashboard/GerantOverview"
 
 export default function ProprietaireDashboard() {
   const { toast } = useToast()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [editingTerrain, setEditingTerrain] = useState<any>(null)
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ["proprietaire-stats", user?.id],
@@ -193,50 +179,34 @@ export default function ProprietaireDashboard() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto space-y-8">
+      <div className="container mx-auto space-y-8 px-4">
         {/* Statistiques */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Terrains</CardTitle>
-              <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.terrains}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Gérants</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.gerants}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Réservations Jour</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.reservationsJour}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">En Attente</CardTitle>
-              <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.reservationsEnAttente}</div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title="Total Terrains"
+            value={stats?.terrains || 0}
+            icon={LayoutDashboard}
+          />
+          <StatsCard
+            title="Total Gérants"
+            value={stats?.gerants || 0}
+            icon={Users}
+          />
+          <StatsCard
+            title="Réservations Jour"
+            value={stats?.reservationsJour || 0}
+            icon={Calendar}
+          />
+          <StatsCard
+            title="En Attente"
+            value={stats?.reservationsEnAttente || 0}
+            icon={ClipboardList}
+          />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Liste des Dernières Réservations */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Dernières Réservations</h2>
               <Button
@@ -250,69 +220,24 @@ export default function ProprietaireDashboard() {
               </Button>
             </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date/Heure</TableHead>
-                    <TableHead>Terrain</TableHead>
-                    <TableHead>Réserviste</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentReservations?.map((reservation) => (
-                    <TableRow key={reservation.id}>
-                      <TableCell>
-                        {new Date(reservation.date_reservation).toLocaleDateString()}
-                        <br />
-                        <span className="text-sm text-muted-foreground">
-                          {reservation.heure_debut}
-                        </span>
-                      </TableCell>
-                      <TableCell>{reservation.terrain?.nom}</TableCell>
-                      <TableCell>
-                        {reservation.reserviste?.prenom} {reservation.reserviste?.nom}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            reservation.statut === "validee"
-                              ? "secondary"
-                              : reservation.statut === "en_attente"
-                              ? "outline"
-                              : "default"
-                          }
-                        >
-                          {reservation.statut}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={reservation.statut !== "en_attente"}
-                          >
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={reservation.statut !== "en_attente"}
-                          >
-                            <XCircle className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <RecentReservations
+              reservations={recentReservations || []}
+              onValidate={(id) => {
+                // Implement validation logic
+                toast({
+                  title: "Réservation validée",
+                  description: "La réservation a été validée avec succès.",
+                })
+              }}
+              onRefuse={(id) => {
+                // Implement refusal logic
+                toast({
+                  title: "Réservation refusée",
+                  description: "La réservation a été refusée.",
+                  variant: "destructive",
+                })
+              }}
+            />
           </div>
 
           {/* Sections latérales */}
@@ -322,19 +247,7 @@ export default function ProprietaireDashboard() {
               <h2 className="text-lg font-semibold">Aperçu des Terrains</h2>
               <div className="space-y-4">
                 {terrains?.map((terrain) => (
-                  <Card key={terrain.id} className="cursor-pointer hover:bg-muted/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold">{terrain.nom}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {terrain.localisation || "Emplacement non spécifié"}
-                          </p>
-                        </div>
-                        <Badge variant="outline">Disponible</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <TerrainOverview key={terrain.id} terrain={terrain} />
                 ))}
               </div>
             </div>
@@ -344,21 +257,7 @@ export default function ProprietaireDashboard() {
               <h2 className="text-lg font-semibold">Gérants Actifs</h2>
               <div className="space-y-4">
                 {gerants?.map((gerant) => (
-                  <Card key={gerant.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <User className="h-8 w-8 text-muted-foreground" />
-                        <div>
-                          <h3 className="font-semibold">
-                            {gerant.prenom} {gerant.nom}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {gerant.droits?.length} terrain(s) assigné(s)
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <GerantOverview key={gerant.id} gerant={gerant} />
                 ))}
               </div>
             </div>
