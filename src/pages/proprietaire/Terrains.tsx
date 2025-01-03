@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
 import { TerrainCard } from "@/components/terrain/TerrainCard"
 import { TerrainDialog } from "@/components/terrain/TerrainDialog"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/useAuth"
 
 export default function ProprietaireTerrains() {
@@ -66,14 +66,7 @@ export default function ProprietaireTerrains() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {terrains?.map((terrain) => (
             <div key={terrain.id} className="relative group">
-              <TerrainCard
-                nom={terrain.nom}
-                localisation={terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`}
-                prix_jour={terrain.prix_jour}
-                prix_nuit={terrain.prix_nuit}
-                taille={terrain.taille}
-                imageUrl={terrain.photos?.[0]?.url}
-              />
+              <TerrainCard terrain={terrain} />
               <Button
                 variant="secondary"
                 size="icon"

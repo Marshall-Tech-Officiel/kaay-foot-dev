@@ -5,6 +5,15 @@ import { Tables } from "@/integrations/supabase/types"
 
 interface TerrainCardProps {
   terrain: Tables<"terrains"> & {
+    zone?: {
+      nom: string
+    } | null
+    region?: {
+      nom: string
+    } | null
+    photos?: {
+      url: string
+    }[] | null
     profiles?: {
       nom: string
       prenom: string
