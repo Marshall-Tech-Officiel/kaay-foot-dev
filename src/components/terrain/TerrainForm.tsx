@@ -46,9 +46,10 @@ interface TerrainFormProps {
   onSubmit: (data: TerrainFormData, images: File[]) => Promise<void>
   onCancel: () => void
   initialData?: Partial<TerrainFormData>
+  mode?: "create" | "edit"
 }
 
-export function TerrainForm({ onSubmit, onCancel, initialData }: TerrainFormProps) {
+export function TerrainForm({ onSubmit, onCancel, initialData, mode = "create" }: TerrainFormProps) {
   const [selectedImages, setSelectedImages] = useState<File[]>([])
   const form = useForm<TerrainFormData>({
     resolver: zodResolver(terrainSchema),
@@ -347,7 +348,7 @@ export function TerrainForm({ onSubmit, onCancel, initialData }: TerrainFormProp
             Annuler
           </Button>
           <Button type="submit">
-            Créer le terrain
+            {mode === "create" ? "Créer le terrain" : "Modifier le terrain"}
           </Button>
         </div>
       </form>
