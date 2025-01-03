@@ -17,7 +17,13 @@ export default function AdminTerrains() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("terrains")
-        .select("*, profiles(nom, prenom)")
+        .select(`
+          *,
+          profiles:proprietaire_id(nom, prenom),
+          zone:zone_id(nom),
+          region:region_id(nom),
+          photos:photos_terrain(url)
+        `)
         .order("created_at", { ascending: false })
       
       if (error) throw error

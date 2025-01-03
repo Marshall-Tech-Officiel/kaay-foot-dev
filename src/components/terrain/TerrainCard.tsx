@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock } from "lucide-react"
+import { MapPin, Clock, User } from "lucide-react"
 import { Tables } from "@/integrations/supabase/types"
 
 interface TerrainCardProps {
@@ -23,6 +23,7 @@ interface TerrainCardProps {
 
 export function TerrainCard({ terrain }: TerrainCardProps) {
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
+  const proprietaire = terrain.profiles ? `${terrain.profiles.prenom} ${terrain.profiles.nom}` : "Non assigné"
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -44,9 +45,15 @@ export function TerrainCard({ terrain }: TerrainCardProps) {
           <span>{terrain.nom}</span>
           <Badge variant="outline">{terrain.taille}</Badge>
         </CardTitle>
-        <CardDescription className="flex items-center gap-1">
-          <MapPin className="h-4 w-4" />
-          {location}
+        <CardDescription className="space-y-2">
+          <div className="flex items-center gap-1">
+            <MapPin className="h-4 w-4" />
+            {location}
+          </div>
+          <div className="flex items-center gap-1">
+            <User className="h-4 w-4" />
+            {proprietaire}
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent>
