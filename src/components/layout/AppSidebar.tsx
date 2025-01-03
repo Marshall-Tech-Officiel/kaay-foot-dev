@@ -27,7 +27,7 @@ const adminMenu = [
 const proprietaireMenu = [
   { title: "Dashboard", icon: Home, path: "/proprietaire" },
   { title: "Mes Terrains", icon: Briefcase, path: "/proprietaire/terrains" },
-  { title: "Mes Gérants", icon: Users, path: "/proprietaire/gerants" },
+  { title: "Gestion Gérants", icon: Users, path: "/proprietaire/gerants" },
   { title: "Réservations", icon: Calendar, path: "/proprietaire/reservations" },
   { title: "Profil", icon: User, path: "/proprietaire/profil" },
 ]
