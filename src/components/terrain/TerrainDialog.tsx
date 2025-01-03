@@ -74,7 +74,7 @@ export function TerrainDialog({ open, onOpenChange, onSuccess }: TerrainDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter un terrain</DialogTitle>
         </DialogHeader>
