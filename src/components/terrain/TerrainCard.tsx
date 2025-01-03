@@ -19,9 +19,10 @@ interface TerrainCardProps {
       prenom: string
     } | null
   }
+  showProprietaire?: boolean
 }
 
-export function TerrainCard({ terrain }: TerrainCardProps) {
+export function TerrainCard({ terrain, showProprietaire = false }: TerrainCardProps) {
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const proprietaire = terrain.profiles ? `${terrain.profiles.prenom} ${terrain.profiles.nom}` : "Non assigné"
 
@@ -50,10 +51,12 @@ export function TerrainCard({ terrain }: TerrainCardProps) {
             <MapPin className="h-4 w-4" />
             {location}
           </div>
-          <div className="flex items-center gap-1">
-            <User className="h-4 w-4" />
-            {proprietaire}
-          </div>
+          {showProprietaire && (
+            <div className="flex items-center gap-1">
+              <User className="h-4 w-4" />
+              {proprietaire}
+            </div>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>

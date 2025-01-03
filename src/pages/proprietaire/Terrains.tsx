@@ -74,7 +74,7 @@ export default function ProprietaireTerrains() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {terrains?.map((terrain) => (
               <div key={terrain.id} className="relative group">
-                <TerrainCard terrain={terrain} />
+                <TerrainCard terrain={terrain} showProprietaire={false} />
                 <Button
                   variant="secondary"
                   size="icon"
