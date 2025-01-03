@@ -35,6 +35,7 @@ const terrainSchema = z.object({
   region_id: z.string().uuid("Veuillez sélectionner une région"),
   zone_id: z.string().uuid("Veuillez sélectionner une zone"),
   taille: z.string().min(1, "La taille est requise"),
+  numero_wave: z.string().min(1, "Le numéro Wave est requis"),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
 })
@@ -59,6 +60,7 @@ export function TerrainForm({ onSubmit, onCancel, initialData }: TerrainFormProp
       heure_debut_nuit: "18:00",
       heure_fin_nuit: "06:00",
       taille: "",
+      numero_wave: "",
       ...initialData,
     },
   })
@@ -148,6 +150,20 @@ export function TerrainForm({ onSubmit, onCancel, initialData }: TerrainFormProp
                   <SelectItem value="11v11">11 contre 11</SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="numero_wave"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Numéro Wave</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Ex: +221 77 000 00 00" />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
