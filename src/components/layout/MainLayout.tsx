@@ -29,7 +29,9 @@ export function MainLayout({ children }: MainLayoutProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-72">
-              <AppSidebar />
+              <div className="h-full">
+                <AppSidebar />
+              </div>
             </SheetContent>
           </Sheet>
         </div>
