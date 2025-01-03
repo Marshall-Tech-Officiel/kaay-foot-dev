@@ -6,6 +6,12 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import { Card } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
 interface TerrainCarouselProps {
   photos: { url: string }[]
@@ -23,19 +29,30 @@ export function TerrainCarousel({ photos }: TerrainCarouselProps) {
   }
 
   return (
-    <Carousel className="relative">
+    <Carousel className="relative w-full">
       <CarouselContent>
         {photos.map((photo, index) => (
           <CarouselItem key={index}>
-            <Card className="overflow-hidden">
-              <div className="aspect-video relative">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Card className="overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]">
+                  <div className="aspect-video relative">
+                    <img
+                      src={photo.url}
+                      alt={`Photo ${index + 1}`}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  </div>
+                </Card>
+              </DialogTrigger>
+              <DialogContent className="max-w-[90vw] max-h-[90vh] p-0">
                 <img
                   src={photo.url}
                   alt={`Photo ${index + 1}`}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="w-full h-full object-contain"
                 />
-              </div>
-            </Card>
+              </DialogContent>
+            </Dialog>
           </CarouselItem>
         ))}
       </CarouselContent>

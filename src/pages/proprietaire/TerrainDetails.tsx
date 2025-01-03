@@ -51,7 +51,7 @@ export default function TerrainDetails() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="container mx-auto space-y-8">
         <div>
           <Breadcrumbs />
           <h1 className="text-2xl font-bold mt-2">{terrain.nom}</h1>
@@ -60,8 +60,8 @@ export default function TerrainDetails() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-4">
+        <div className="grid gap-8 lg:grid-cols-2">
+          <div className="space-y-6">
             <TerrainCarousel photos={terrain.photos || []} />
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg border p-4">
