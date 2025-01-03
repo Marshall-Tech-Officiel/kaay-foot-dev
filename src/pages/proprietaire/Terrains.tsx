@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Edit } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
+import { useNavigate } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
 import { TerrainCard } from "@/components/terrain/TerrainCard"
@@ -13,6 +14,7 @@ import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 export default function ProprietaireTerrains() {
   const { toast } = useToast()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [editingTerrain, setEditingTerrain] = useState<any>(null)
 
   const { data: terrains, isLoading, refetch } = useQuery({
@@ -73,13 +75,18 @@ export default function ProprietaireTerrains() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {terrains?.map((terrain) => (
-              <div key={terrain.id} className="relative group">
-                <TerrainCard terrain={terrain} showProprietaire={false} />
+              <div key={terrain.id} className="relative group cursor-pointer">
+                <div onClick={() => navigate(`/proprietaire/terrains/${terrain.id}`)}>
+                  <TerrainCard terrain={terrain} showProprietaire={false} />
+                </div>
                 <Button
                   variant="secondary"
                   size="icon"
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => setEditingTerrain(terrain)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEditingTerrain(terrain)
+                  }}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>

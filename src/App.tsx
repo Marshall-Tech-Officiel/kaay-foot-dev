@@ -24,6 +24,7 @@ const AdminProfile = lazy(() => import("./pages/admin/Profile"))
 // Pages Propriétaire
 const ProprietaireDashboard = lazy(() => import("./pages/proprietaire/Dashboard"))
 const ProprietaireTerrains = lazy(() => import("./pages/proprietaire/Terrains"))
+const ProprietaireTerrainDetails = lazy(() => import("./pages/proprietaire/TerrainDetails"))
 const ProprietaireGerants = lazy(() => import("./pages/proprietaire/Gerants"))
 const ProprietaireReservations = lazy(() => import("./pages/proprietaire/Reservations"))
 const ProprietaireProfile = lazy(() => import("./pages/proprietaire/Profile"))
@@ -101,6 +102,11 @@ const App = () => (
             <Route path="/proprietaire/terrains" element={
               <PrivateRoute allowedRoles={["proprietaire"]}>
                 <ProprietaireTerrains />
+              </PrivateRoute>
+            } />
+            <Route path="/proprietaire/terrains/:id" element={
+              <PrivateRoute allowedRoles={["proprietaire"]}>
+                <ProprietaireTerrainDetails />
               </PrivateRoute>
             } />
             <Route path="/proprietaire/gerants" element={
