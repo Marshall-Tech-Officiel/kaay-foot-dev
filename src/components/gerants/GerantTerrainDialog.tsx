@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
@@ -18,7 +19,7 @@ interface GerantTerrainDialogProps {
 
 export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProps) {
   const { user } = useAuth()
-  const queryClient = useQueryClient()
+  const [droitsGerant, setDroitsGerant] = useState<any[]>([])
 
   // Récupérer les terrains du propriétaire
   const { data: terrains } = useQuery({
@@ -43,46 +44,80 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
     enabled: !!user && !!gerant,
   })
 
-  // Récupérer les droits actuels du gérant
-  const { data: droitsActuels } = useQuery({
-    queryKey: ["droits", gerant?.id],
-    queryFn: async () => {
+  // Charger les droits initiaux et configurer la souscription realtime
+  useEffect(() => {
+    if (!gerant?.id) return
+
+    // Charger les droits initiaux
+    const loadDroits = async () => {
       const { data, error } = await supabase
         .from("droits_gerants")
         .select("*")
         .eq("gerant_id", gerant.id)
 
-      if (error) throw error
-      return data
-    },
-    enabled: !!gerant,
-  })
+      if (!error && data) {
+        setDroitsGerant(data)
+      }
+    }
+
+    loadDroits()
+
+    // Mettre en place la souscription realtime
+    const channel = supabase
+      .channel('droits_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'droits_gerants',
+          filter: `gerant_id=eq.${gerant.id}`
+        },
+        (payload) => {
+          // Mettre à jour les droits selon le type d'événement
+          if (payload.eventType === 'INSERT') {
+            setDroitsGerant(prev => [...prev, payload.new])
+          } else if (payload.eventType === 'DELETE') {
+            setDroitsGerant(prev => prev.filter(droit => 
+              droit.terrain_id !== payload.old.terrain_id
+            ))
+          }
+        }
+      )
+      .subscribe()
+
+    // Nettoyer la souscription
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [gerant?.id])
 
   const handleTerrainToggle = async (terrainId: string, isChecked: boolean) => {
     try {
       if (isChecked) {
-        // Ajouter les droits
+        // Vérifier si le droit existe déjà
+        const existingDroit = droitsGerant.find(
+          droit => droit.terrain_id === terrainId
+        )
+
+        if (existingDroit) {
+          toast.info("Ce terrain est déjà assigné au gérant")
+          return
+        }
+
         const { error } = await supabase
           .from("droits_gerants")
-          .upsert(
-            {
-              gerant_id: gerant.id,
-              terrain_id: terrainId,
-              peut_gerer_reservations: true,
-              peut_annuler_reservations: true,
-              peut_modifier_terrain: true,
-            },
-            { 
-              onConflict: 'gerant_id,terrain_id',
-              ignoreDuplicates: true 
-            }
-          )
+          .insert({
+            gerant_id: gerant.id,
+            terrain_id: terrainId,
+            peut_gerer_reservations: true,
+            peut_annuler_reservations: true,
+            peut_modifier_terrain: true,
+          })
 
         if (error) throw error
-        await queryClient.invalidateQueries({ queryKey: ["droits", gerant?.id] })
         toast.success("Terrain assigné avec succès")
       } else {
-        // Retirer les droits
         const { error } = await supabase
           .from("droits_gerants")
           .delete()
@@ -90,7 +125,6 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
           .eq("terrain_id", terrainId)
 
         if (error) throw error
-        await queryClient.invalidateQueries({ queryKey: ["droits", gerant?.id] })
         toast.success("Assignation retirée avec succès")
       }
     } catch (error: any) {
@@ -110,7 +144,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
 
         <div className="space-y-4">
           {terrains?.map((terrain) => {
-            const isAssigned = droitsActuels?.some(
+            const isAssigned = droitsGerant?.some(
               (droit) => droit.terrain_id === terrain.id
             )
 
