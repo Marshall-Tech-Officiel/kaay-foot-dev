@@ -18,7 +18,6 @@ interface GerantTerrainDialogProps {
 }
 
 export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProps) {
-  const [assignedTerrains, setAssignedTerrains] = useState<string[]>([])
   const { user } = useAuth()
 
   // Récupérer les terrains du propriétaire
@@ -45,7 +44,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
   })
 
   // Récupérer les droits actuels du gérant
-  const { data: droitsActuels } = useQuery({
+  const { data: droitsActuels, refetch: refetchDroits } = useQuery({
     queryKey: ["droits", gerant?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -57,20 +56,11 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
       return data
     },
     enabled: !!gerant,
-    meta: {
-      onSuccess: (data: any) => {
-        const assignedIds = data?.map((droit: any) => droit.terrain_id) || []
-        setAssignedTerrains(assignedIds)
-      }
-    }
   })
 
   const handleTerrainToggle = async (terrainId: string, isChecked: boolean) => {
     try {
       if (isChecked) {
-        // Mettre à jour le state local immédiatement
-        setAssignedTerrains(prev => [...prev, terrainId])
-        
         // Vérifier d'abord si le droit existe déjà
         const { data: existingDroit, error: checkError } = await supabase
           .from("droits_gerants")
@@ -94,12 +84,10 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
             })
 
           if (error) throw error
+          await refetchDroits()
           toast.success("Terrain assigné avec succès")
         }
       } else {
-        // Mettre à jour le state local immédiatement
-        setAssignedTerrains(prev => prev.filter(id => id !== terrainId))
-        
         // Retirer les droits
         const { error } = await supabase
           .from("droits_gerants")
@@ -108,15 +96,10 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
           .eq("terrain_id", terrainId)
 
         if (error) throw error
+        await refetchDroits()
         toast.success("Assignation retirée avec succès")
       }
     } catch (error: any) {
-      // En cas d'erreur, restaurer l'état précédent
-      setAssignedTerrains(prev => 
-        isChecked 
-          ? prev.filter(id => id !== terrainId)
-          : [...prev, terrainId]
-      )
       console.error("Erreur lors de la modification des droits:", error)
       toast.error("Une erreur est survenue")
     }
@@ -132,18 +115,24 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
         </DialogHeader>
 
         <div className="space-y-4">
-          {terrains?.map((terrain) => (
-            <div key={terrain.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={terrain.id}
-                checked={assignedTerrains.includes(terrain.id)}
-                onCheckedChange={(checked) => 
-                  handleTerrainToggle(terrain.id, checked as boolean)
-                }
-              />
-              <Label htmlFor={terrain.id}>{terrain.nom}</Label>
-            </div>
-          ))}
+          {terrains?.map((terrain) => {
+            const isAssigned = droitsActuels?.some(
+              (droit) => droit.terrain_id === terrain.id
+            )
+
+            return (
+              <div key={terrain.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={terrain.id}
+                  checked={isAssigned}
+                  onCheckedChange={(checked) => 
+                    handleTerrainToggle(terrain.id, checked as boolean)
+                  }
+                />
+                <Label htmlFor={terrain.id}>{terrain.nom}</Label>
+              </div>
+            )
+          })}
 
           {terrains?.length === 0 && (
             <p className="text-center text-muted-foreground">
