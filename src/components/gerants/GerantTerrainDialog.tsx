@@ -60,12 +60,14 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
     try {
       if (isChecked) {
         // Vérifier d'abord si le droit existe déjà
-        const { data: existingDroit } = await supabase
+        const { data: existingDroit, error: checkError } = await supabase
           .from("droits_gerants")
           .select("*")
           .eq("gerant_id", gerant.id)
           .eq("terrain_id", terrainId)
-          .single()
+          .maybeSingle()
+
+        if (checkError) throw checkError
 
         if (existingDroit) {
           toast.error("Ce gérant a déjà des droits sur ce terrain")
@@ -83,13 +85,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
             peut_modifier_terrain: true,
           })
 
-        if (error) {
-          if (error.code === "23505") {
-            toast.error("Ce gérant a déjà des droits sur ce terrain")
-            return
-          }
-          throw error
-        }
+        if (error) throw error
         toast.success("Terrain assigné avec succès")
       } else {
         // Retirer les droits
