@@ -71,6 +71,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
 
         if (checkError) throw checkError
 
+        // Si le droit existe déjà, ne rien faire
         if (existingDroit) {
           toast.error("Ce gérant a déjà des droits sur ce terrain")
           return
@@ -87,7 +88,15 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
             peut_modifier_terrain: true,
           })
 
-        if (error) throw error
+        if (error) {
+          // Si c'est une erreur de doublon, on l'ignore simplement
+          if (error.code === "23505") {
+            await refetchDroits()
+            return
+          }
+          throw error
+        }
+        
         await refetchDroits()
         toast.success("Terrain assigné avec succès")
       } else {
