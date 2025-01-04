@@ -59,6 +59,19 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
   const handleTerrainToggle = async (terrainId: string, isChecked: boolean) => {
     try {
       if (isChecked) {
+        // Vérifier d'abord si le droit existe déjà
+        const { data: existingDroit } = await supabase
+          .from("droits_gerants")
+          .select("*")
+          .eq("gerant_id", gerant.id)
+          .eq("terrain_id", terrainId)
+          .single()
+
+        if (existingDroit) {
+          toast.error("Ce gérant a déjà des droits sur ce terrain")
+          return
+        }
+
         // Ajouter les droits
         const { error } = await supabase
           .from("droits_gerants")
@@ -84,7 +97,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
         toast.success("Assignation retirée avec succès")
       }
       refetchDroits()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de la modification des droits:", error)
       toast.error("Une erreur est survenue")
     }
