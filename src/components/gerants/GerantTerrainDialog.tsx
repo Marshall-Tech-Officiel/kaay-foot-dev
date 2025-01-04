@@ -30,6 +30,8 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
         .eq("user_id", user?.id)
         .single()
 
+      if (!profileData) throw new Error("Profile not found")
+
       const { data, error } = await supabase
         .from("terrains")
         .select("*")
@@ -86,6 +88,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
           })
 
         if (error) throw error
+        await refetchDroits()
         toast.success("Terrain assigné avec succès")
       } else {
         // Retirer les droits
@@ -96,9 +99,9 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
           .eq("terrain_id", terrainId)
 
         if (error) throw error
+        await refetchDroits()
         toast.success("Assignation retirée avec succès")
       }
-      await refetchDroits()
     } catch (error: any) {
       console.error("Erreur lors de la modification des droits:", error)
       toast.error("Une erreur est survenue")
