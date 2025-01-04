@@ -83,7 +83,13 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
             peut_modifier_terrain: true,
           })
 
-        if (error) throw error
+        if (error) {
+          if (error.code === "23505") {
+            toast.error("Ce gérant a déjà des droits sur ce terrain")
+            return
+          }
+          throw error
+        }
         toast.success("Terrain assigné avec succès")
       } else {
         // Retirer les droits
@@ -96,7 +102,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
         if (error) throw error
         toast.success("Assignation retirée avec succès")
       }
-      refetchDroits()
+      await refetchDroits()
     } catch (error: any) {
       console.error("Erreur lors de la modification des droits:", error)
       toast.error("Une erreur est survenue")
