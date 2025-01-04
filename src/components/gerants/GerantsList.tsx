@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
@@ -10,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { GerantTerrainDialog } from "./GerantTerrainDialog"
 
 interface GerantsListProps {
   searchQuery: string
@@ -17,6 +19,7 @@ interface GerantsListProps {
 
 export function GerantsList({ searchQuery }: GerantsListProps) {
   const { user } = useAuth()
+  const [selectedGerant, setSelectedGerant] = useState<any>(null)
 
   const { data: gerants, isLoading, refetch } = useQuery({
     queryKey: ["gerants", searchQuery],
@@ -57,13 +60,12 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
       .on(
         'postgres_changes',
         {
-          event: '*', // Écoute tous les événements (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'profiles',
           filter: `role=eq.gerant`
         },
         () => {
-          // Rafraîchir la liste quand il y a un changement
           refetch()
         }
       )
@@ -83,38 +85,49 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Prénom</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Téléphone</TableHead>
-            <TableHead>Date de création</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {gerants?.map((gerant) => (
-            <TableRow key={gerant.id}>
-              <TableCell>{gerant.nom}</TableCell>
-              <TableCell>{gerant.prenom}</TableCell>
-              <TableCell>{gerant.email}</TableCell>
-              <TableCell>{gerant.telephone}</TableCell>
-              <TableCell>
-                {new Date(gerant.created_at).toLocaleDateString()}
-              </TableCell>
-            </TableRow>
-          ))}
-          {gerants?.length === 0 && (
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
-                Aucun gérant trouvé
-              </TableCell>
+              <TableHead>Nom</TableHead>
+              <TableHead>Prénom</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Téléphone</TableHead>
+              <TableHead>Date de création</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {gerants?.map((gerant) => (
+              <TableRow 
+                key={gerant.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => setSelectedGerant(gerant)}
+              >
+                <TableCell>{gerant.nom}</TableCell>
+                <TableCell>{gerant.prenom}</TableCell>
+                <TableCell>{gerant.email}</TableCell>
+                <TableCell>{gerant.telephone}</TableCell>
+                <TableCell>
+                  {new Date(gerant.created_at).toLocaleDateString()}
+                </TableCell>
+              </TableRow>
+            ))}
+            {gerants?.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
+                  Aucun gérant trouvé
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <GerantTerrainDialog
+        gerant={selectedGerant}
+        onClose={() => setSelectedGerant(null)}
+      />
+    </>
   )
 }
