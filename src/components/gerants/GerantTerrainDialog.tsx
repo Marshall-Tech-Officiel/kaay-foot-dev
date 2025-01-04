@@ -71,22 +71,26 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
 
         if (checkError) throw checkError
 
-        // Si le droit n'existe pas, l'ajouter
-        if (!existingDroit) {
-          const { error } = await supabase
-            .from("droits_gerants")
-            .insert({
-              gerant_id: gerant.id,
-              terrain_id: terrainId,
-              peut_gerer_reservations: true,
-              peut_annuler_reservations: true,
-              peut_modifier_terrain: true,
-            })
-
-          if (error) throw error
-          await refetchDroits()
-          toast.success("Terrain assigné avec succès")
+        // Si le droit existe déjà, ne rien faire
+        if (existingDroit) {
+          toast.info("Ce terrain est déjà assigné au gérant")
+          return
         }
+
+        // Si le droit n'existe pas, l'ajouter
+        const { error } = await supabase
+          .from("droits_gerants")
+          .insert({
+            gerant_id: gerant.id,
+            terrain_id: terrainId,
+            peut_gerer_reservations: true,
+            peut_annuler_reservations: true,
+            peut_modifier_terrain: true,
+          })
+
+        if (error) throw error
+        await refetchDroits()
+        toast.success("Terrain assigné avec succès")
       } else {
         // Retirer les droits
         const { error } = await supabase
