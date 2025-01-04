@@ -57,9 +57,11 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
       return data
     },
     enabled: !!gerant,
-    onSuccess: (data) => {
-      const assignedIds = data?.map(droit => droit.terrain_id) || []
-      setAssignedTerrains(assignedIds)
+    meta: {
+      onSuccess: (data: any) => {
+        const assignedIds = data?.map((droit: any) => droit.terrain_id) || []
+        setAssignedTerrains(assignedIds)
+      }
     }
   })
 
