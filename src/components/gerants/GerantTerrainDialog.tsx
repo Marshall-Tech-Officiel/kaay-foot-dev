@@ -1,5 +1,4 @@
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
@@ -19,6 +18,7 @@ interface GerantTerrainDialogProps {
 
 export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProps) {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
 
   // Récupérer les terrains du propriétaire
   const { data: terrains } = useQuery({
@@ -44,7 +44,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
   })
 
   // Récupérer les droits actuels du gérant
-  const { data: droitsActuels, refetch: refetchDroits } = useQuery({
+  const { data: droitsActuels } = useQuery({
     queryKey: ["droits", gerant?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -61,35 +61,25 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
   const handleTerrainToggle = async (terrainId: string, isChecked: boolean) => {
     try {
       if (isChecked) {
-        // Vérifier d'abord si le droit existe déjà
-        const { data: existingDroit, error: checkError } = await supabase
-          .from("droits_gerants")
-          .select("*")
-          .eq("gerant_id", gerant.id)
-          .eq("terrain_id", terrainId)
-          .maybeSingle()
-
-        if (checkError) throw checkError
-
-        // Si le droit existe déjà, ne rien faire
-        if (existingDroit) {
-          toast.info("Ce terrain est déjà assigné au gérant")
-          return
-        }
-
-        // Si le droit n'existe pas, l'ajouter
+        // Ajouter les droits
         const { error } = await supabase
           .from("droits_gerants")
-          .insert({
-            gerant_id: gerant.id,
-            terrain_id: terrainId,
-            peut_gerer_reservations: true,
-            peut_annuler_reservations: true,
-            peut_modifier_terrain: true,
-          })
+          .upsert(
+            {
+              gerant_id: gerant.id,
+              terrain_id: terrainId,
+              peut_gerer_reservations: true,
+              peut_annuler_reservations: true,
+              peut_modifier_terrain: true,
+            },
+            { 
+              onConflict: 'gerant_id,terrain_id',
+              ignoreDuplicates: true 
+            }
+          )
 
         if (error) throw error
-        await refetchDroits()
+        await queryClient.invalidateQueries({ queryKey: ["droits", gerant?.id] })
         toast.success("Terrain assigné avec succès")
       } else {
         // Retirer les droits
@@ -100,7 +90,7 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
           .eq("terrain_id", terrainId)
 
         if (error) throw error
-        await refetchDroits()
+        await queryClient.invalidateQueries({ queryKey: ["droits", gerant?.id] })
         toast.success("Assignation retirée avec succès")
       }
     } catch (error: any) {
