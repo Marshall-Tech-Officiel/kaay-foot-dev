@@ -1,8 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
-import { useEffect } from "react"
 import {
   Table,
   TableBody,
@@ -11,7 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { GerantTerrainDialog } from "./GerantTerrainDialog"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
+import { ChevronDown, ChevronUp } from "lucide-react"
+import { toast } from "sonner"
 
 interface GerantsListProps {
   searchQuery: string
@@ -19,12 +25,12 @@ interface GerantsListProps {
 
 export function GerantsList({ searchQuery }: GerantsListProps) {
   const { user } = useAuth()
-  const [selectedGerant, setSelectedGerant] = useState<any>(null)
+  const [expandedGerant, setExpandedGerant] = useState<string | null>(null)
+  const [droitsGerants, setDroitsGerants] = useState<Record<string, any[]>>({})
 
   const { data: gerants, isLoading, refetch } = useQuery({
     queryKey: ["gerants", searchQuery],
     queryFn: async () => {
-      // D'abord, récupérer l'ID du profil du propriétaire connecté
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -33,19 +39,39 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
 
       if (profileError) throw profileError
 
-      // Ensuite, récupérer tous les gérants associés à ce propriétaire
       let query = supabase
         .from("profiles")
         .select("*")
         .eq("proprietaire_id", profileData.id)
         .eq("role", "gerant")
 
-      // Ajouter la recherche si un terme est fourni
       if (searchQuery) {
         query = query.or(`nom.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
       }
 
       const { data, error } = await query.order("created_at", { ascending: false })
+      if (error) throw error
+      return data
+    },
+    enabled: !!user,
+  })
+
+  // Récupérer les terrains du propriétaire
+  const { data: terrains } = useQuery({
+    queryKey: ["terrains", user?.id],
+    queryFn: async () => {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single()
+
+      if (!profileData) throw new Error("Profile not found")
+
+      const { data, error } = await supabase
+        .from("terrains")
+        .select("*")
+        .eq("proprietaire_id", profileData.id)
 
       if (error) throw error
       return data
@@ -53,20 +79,49 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
     enabled: !!user,
   })
 
-  // Écouter les changements en temps réel
+  // Charger les droits pour un gérant spécifique
+  const loadDroitsForGerant = async (gerantId: string) => {
+    const { data, error } = await supabase
+      .from("droits_gerants")
+      .select("*")
+      .eq("gerant_id", gerantId)
+
+    if (!error && data) {
+      setDroitsGerants(prev => ({
+        ...prev,
+        [gerantId]: data
+      }))
+    }
+  }
+
+  // Configurer la souscription realtime pour les droits
   useEffect(() => {
+    if (!expandedGerant) return
+
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('droits_changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'profiles',
-          filter: `role=eq.gerant`
+          table: 'droits_gerants',
+          filter: `gerant_id=eq.${expandedGerant}`
         },
-        () => {
-          refetch()
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setDroitsGerants(prev => ({
+              ...prev,
+              [expandedGerant]: [...(prev[expandedGerant] || []), payload.new]
+            }))
+          } else if (payload.eventType === 'DELETE') {
+            setDroitsGerants(prev => ({
+              ...prev,
+              [expandedGerant]: prev[expandedGerant]?.filter(
+                droit => droit.terrain_id !== payload.old.terrain_id
+              ) || []
+            }))
+          }
         }
       )
       .subscribe()
@@ -74,7 +129,49 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [refetch])
+  }, [expandedGerant])
+
+  // Gérer l'assignation/retrait d'un terrain
+  const handleTerrainToggle = async (gerantId: string, terrainId: string, isAssigned: boolean) => {
+    try {
+      if (!isAssigned) {
+        const { error } = await supabase
+          .from("droits_gerants")
+          .insert({
+            gerant_id: gerantId,
+            terrain_id: terrainId,
+            peut_gerer_reservations: true,
+            peut_annuler_reservations: true,
+            peut_modifier_terrain: true,
+          })
+
+        if (error) throw error
+        toast.success("Terrain assigné avec succès")
+      } else {
+        const { error } = await supabase
+          .from("droits_gerants")
+          .delete()
+          .eq("gerant_id", gerantId)
+          .eq("terrain_id", terrainId)
+
+        if (error) throw error
+        toast.success("Assignation retirée avec succès")
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la modification des droits:", error)
+      toast.error("Une erreur est survenue")
+    }
+  }
+
+  // Gérer l'expansion d'un gérant
+  const handleGerantExpand = (gerantId: string) => {
+    if (expandedGerant === gerantId) {
+      setExpandedGerant(null)
+    } else {
+      setExpandedGerant(gerantId)
+      loadDroitsForGerant(gerantId)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -85,25 +182,22 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
   }
 
   return (
-    <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Prénom</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Téléphone</TableHead>
-              <TableHead>Date de création</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {gerants?.map((gerant) => (
-              <TableRow 
-                key={gerant.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => setSelectedGerant(gerant)}
-              >
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom</TableHead>
+            <TableHead>Prénom</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Téléphone</TableHead>
+            <TableHead>Date de création</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {gerants?.map((gerant) => (
+            <Collapsible key={gerant.id}>
+              <TableRow>
                 <TableCell>{gerant.nom}</TableCell>
                 <TableCell>{gerant.prenom}</TableCell>
                 <TableCell>{gerant.email}</TableCell>
@@ -111,23 +205,65 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
                 <TableCell>
                   {new Date(gerant.created_at).toLocaleDateString()}
                 </TableCell>
-              </TableRow>
-            ))}
-            {gerants?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
-                  Aucun gérant trouvé
+                <TableCell>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleGerantExpand(gerant.id)}
+                    >
+                      {expandedGerant === gerant.id ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              <CollapsibleContent>
+                <TableRow>
+                  <TableCell colSpan={6} className="bg-muted/50">
+                    <div className="p-4 space-y-4">
+                      <h4 className="font-medium">Terrains assignés</h4>
+                      <div className="grid gap-2">
+                        {terrains?.map((terrain) => {
+                          const isAssigned = droitsGerants[gerant.id]?.some(
+                            (droit) => droit.terrain_id === terrain.id
+                          )
 
-      <GerantTerrainDialog
-        gerant={selectedGerant}
-        onClose={() => setSelectedGerant(null)}
-      />
-    </>
+                          return (
+                            <div
+                              key={terrain.id}
+                              className="flex items-center justify-between bg-background p-2 rounded-lg"
+                            >
+                              <span>{terrain.nom}</span>
+                              <Button
+                                variant={isAssigned ? "destructive" : "default"}
+                                size="sm"
+                                onClick={() => handleTerrainToggle(gerant.id, terrain.id, isAssigned)}
+                              >
+                                {isAssigned ? "Retirer" : "Assigner"}
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
+          {gerants?.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-4">
+                Aucun gérant trouvé
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
