@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import { toast } from "sonner"
+import { GerantTerrainsList } from "./GerantTerrainsList"
 
 interface GerantsListProps {
   searchQuery: string
@@ -26,9 +25,8 @@ interface GerantsListProps {
 export function GerantsList({ searchQuery }: GerantsListProps) {
   const { user } = useAuth()
   const [expandedGerant, setExpandedGerant] = useState<string | null>(null)
-  const [droitsGerants, setDroitsGerants] = useState<Record<string, any[]>>({})
 
-  const { data: gerants, isLoading, refetch } = useQuery({
+  const { data: gerants, isLoading } = useQuery({
     queryKey: ["gerants", searchQuery],
     queryFn: async () => {
       const { data: profileData, error: profileError } = await supabase
@@ -56,7 +54,6 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
     enabled: !!user,
   })
 
-  // Récupérer les terrains du propriétaire
   const { data: terrains } = useQuery({
     queryKey: ["terrains", user?.id],
     queryFn: async () => {
@@ -79,100 +76,6 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
     enabled: !!user,
   })
 
-  // Charger les droits pour un gérant spécifique
-  const loadDroitsForGerant = async (gerantId: string) => {
-    const { data, error } = await supabase
-      .from("droits_gerants")
-      .select("*")
-      .eq("gerant_id", gerantId)
-
-    if (!error && data) {
-      setDroitsGerants(prev => ({
-        ...prev,
-        [gerantId]: data
-      }))
-    }
-  }
-
-  // Configurer la souscription realtime pour les droits
-  useEffect(() => {
-    if (!expandedGerant) return
-
-    const channel = supabase
-      .channel('droits_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'droits_gerants',
-          filter: `gerant_id=eq.${expandedGerant}`
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setDroitsGerants(prev => ({
-              ...prev,
-              [expandedGerant]: [...(prev[expandedGerant] || []), payload.new]
-            }))
-          } else if (payload.eventType === 'DELETE') {
-            setDroitsGerants(prev => ({
-              ...prev,
-              [expandedGerant]: prev[expandedGerant]?.filter(
-                droit => droit.terrain_id !== payload.old.terrain_id
-              ) || []
-            }))
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [expandedGerant])
-
-  // Gérer l'assignation/retrait d'un terrain
-  const handleTerrainToggle = async (gerantId: string, terrainId: string, isAssigned: boolean) => {
-    try {
-      if (!isAssigned) {
-        const { error } = await supabase
-          .from("droits_gerants")
-          .insert({
-            gerant_id: gerantId,
-            terrain_id: terrainId,
-            peut_gerer_reservations: true,
-            peut_annuler_reservations: true,
-            peut_modifier_terrain: true,
-          })
-
-        if (error) throw error
-        toast.success("Terrain assigné avec succès")
-      } else {
-        const { error } = await supabase
-          .from("droits_gerants")
-          .delete()
-          .eq("gerant_id", gerantId)
-          .eq("terrain_id", terrainId)
-
-        if (error) throw error
-        toast.success("Assignation retirée avec succès")
-      }
-    } catch (error: any) {
-      console.error("Erreur lors de la modification des droits:", error)
-      toast.error("Une erreur est survenue")
-    }
-  }
-
-  // Gérer l'expansion d'un gérant
-  const handleGerantExpand = (gerantId: string) => {
-    if (expandedGerant === gerantId) {
-      setExpandedGerant(null)
-    } else {
-      setExpandedGerant(gerantId)
-      loadDroitsForGerant(gerantId)
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -182,7 +85,7 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -191,7 +94,7 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
             <TableHead>Email</TableHead>
             <TableHead>Téléphone</TableHead>
             <TableHead>Date de création</TableHead>
-            <TableHead></TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -210,7 +113,9 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleGerantExpand(gerant.id)}
+                      onClick={() => setExpandedGerant(
+                        expandedGerant === gerant.id ? null : gerant.id
+                      )}
                     >
                       {expandedGerant === gerant.id ? (
                         <ChevronUp className="h-4 w-4" />
@@ -223,33 +128,11 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
               </TableRow>
               <CollapsibleContent>
                 <TableRow>
-                  <TableCell colSpan={6} className="bg-muted/50">
-                    <div className="p-4 space-y-4">
-                      <h4 className="font-medium">Terrains assignés</h4>
-                      <div className="grid gap-2">
-                        {terrains?.map((terrain) => {
-                          const isAssigned = droitsGerants[gerant.id]?.some(
-                            (droit) => droit.terrain_id === terrain.id
-                          )
-
-                          return (
-                            <div
-                              key={terrain.id}
-                              className="flex items-center justify-between bg-background p-2 rounded-lg"
-                            >
-                              <span>{terrain.nom}</span>
-                              <Button
-                                variant={isAssigned ? "destructive" : "default"}
-                                size="sm"
-                                onClick={() => handleTerrainToggle(gerant.id, terrain.id, isAssigned)}
-                              >
-                                {isAssigned ? "Retirer" : "Assigner"}
-                              </Button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
+                  <TableCell colSpan={6}>
+                    <GerantTerrainsList 
+                      gerant={gerant}
+                      terrains={terrains || []}
+                    />
                   </TableCell>
                 </TableRow>
               </CollapsibleContent>
