@@ -1,9 +1,15 @@
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
-import { useAuth } from "@/hooks/useAuth"
+import { useToast } from "@/hooks/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface GerantTerrainDialogProps {
   gerant: any
@@ -11,117 +17,72 @@ interface GerantTerrainDialogProps {
 }
 
 export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProps) {
-  const { user } = useAuth()
-  const [assignedTerrains, setAssignedTerrains] = useState<{ [key: string]: boolean }>({})
+  const { toast } = useToast()
+  const [assignedTerrains, setAssignedTerrains] = useState<Record<string, boolean>>({})
 
-  // Récupérer les terrains du propriétaire
+  // Charger les terrains du propriétaire
   const { data: terrains } = useQuery({
-    queryKey: ["terrains", user?.id],
+    queryKey: ["terrains-proprietaire"],
     queryFn: async () => {
-      const { data: profileData } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("id")
-        .eq("user_id", user?.id)
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
         .single()
 
-      const { data: terrains } = await supabase
+      const { data } = await supabase
         .from("terrains")
         .select("*")
-        .eq("proprietaire_id", profileData.id)
+        .eq("proprietaire_id", profile.id)
 
-      return terrains || []
-    },
-    enabled: !!user && !!gerant,
-  })
-
-  // Récupérer les assignations existantes
-  const { data: existingAssignments } = useQuery({
-    queryKey: ["droits_gerants", gerant?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("droits_gerants")
-        .select("terrain_id")
-        .eq("gerant_id", gerant.id)
-      
       return data || []
     },
     enabled: !!gerant,
   })
 
-  // Mettre à jour l'état local des assignations quand les données sont chargées
+  // Charger les assignations existantes
+  const { data: existingAssignments, refetch } = useQuery({
+    queryKey: ["gerant-terrains", gerant?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("droits_gerants")
+        .select("terrain_id")
+        .eq("gerant_id", gerant.id)
+
+      return data || []
+    },
+    enabled: !!gerant,
+  })
+
+  // Mettre à jour l'état local avec les assignations existantes
   useEffect(() => {
-    if (existingAssignments) {
-      const assignments: { [key: string]: boolean } = {}
-      existingAssignments.forEach((assignment) => {
-        assignments[assignment.terrain_id] = true
+    if (existingAssignments && terrains) {
+      const assignments: Record<string, boolean> = {}
+      terrains.forEach((terrain) => {
+        assignments[terrain.id] = existingAssignments.some(
+          (assignment) => assignment.terrain_id === terrain.id
+        )
       })
       setAssignedTerrains(assignments)
     }
-  }, [existingAssignments])
-
-  // Gérer le changement d'état d'une checkbox
-  const handleTerrainToggle = async (terrainId: string) => {
-    const isCurrentlyAssigned = assignedTerrains[terrainId]
-
-    if (!isCurrentlyAssigned) {
-      // Créer une nouvelle assignation
-      const { error } = await supabase
-        .from("droits_gerants")
-        .insert({
-          gerant_id: gerant.id,
-          terrain_id: terrainId,
-          peut_gerer_reservations: true,
-          peut_annuler_reservations: true,
-          peut_modifier_terrain: true,
-        })
-
-      if (!error) {
-        setAssignedTerrains(prev => ({
-          ...prev,
-          [terrainId]: true
-        }))
-      }
-    } else {
-      // Supprimer l'assignation existante
-      const { error } = await supabase
-        .from("droits_gerants")
-        .delete()
-        .eq("gerant_id", gerant.id)
-        .eq("terrain_id", terrainId)
-
-      if (!error) {
-        setAssignedTerrains(prev => ({
-          ...prev,
-          [terrainId]: false
-        }))
-      }
-    }
-  }
+  }, [existingAssignments, terrains])
 
   // Écouter les changements en temps réel
   useEffect(() => {
+    if (!gerant) return
+
     const channel = supabase
-      .channel('droits_gerants_changes')
+      .channel('schema-db-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'droits_gerants',
-          filter: `gerant_id=eq.${gerant?.id}`
+          filter: `gerant_id=eq.${gerant.id}`
         },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setAssignedTerrains(prev => ({
-              ...prev,
-              [payload.new.terrain_id]: true
-            }))
-          } else if (payload.eventType === 'DELETE') {
-            setAssignedTerrains(prev => ({
-              ...prev,
-              [payload.old.terrain_id]: false
-            }))
-          }
+        () => {
+          refetch()
         }
       )
       .subscribe()
@@ -129,36 +90,89 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [gerant?.id])
+  }, [gerant, refetch])
+
+  const handleTerrainAssignment = async (terrainId: string, checked: boolean) => {
+    try {
+      if (checked) {
+        // Créer l'assignation
+        const { error } = await supabase
+          .from("droits_gerants")
+          .insert({
+            gerant_id: gerant.id,
+            terrain_id: terrainId,
+            peut_gerer_reservations: true,
+          })
+
+        if (error) throw error
+
+        toast({
+          title: "Terrain assigné",
+          description: "Le terrain a été assigné au gérant avec succès.",
+        })
+      } else {
+        // Supprimer l'assignation
+        const { error } = await supabase
+          .from("droits_gerants")
+          .delete()
+          .eq("gerant_id", gerant.id)
+          .eq("terrain_id", terrainId)
+
+        if (error) throw error
+
+        toast({
+          title: "Terrain retiré",
+          description: "Le terrain a été retiré du gérant avec succès.",
+        })
+      }
+
+      // Mettre à jour l'état local
+      setAssignedTerrains((prev) => ({
+        ...prev,
+        [terrainId]: checked,
+      }))
+    } catch (error) {
+      console.error("Erreur lors de la gestion de l'assignation:", error)
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'opération.",
+        variant: "destructive",
+      })
+    }
+  }
 
   if (!gerant) return null
 
   return (
     <Dialog open={!!gerant} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            Assigner des terrains à {gerant.prenom} {gerant.nom}
+            Gestion des terrains pour {gerant.prenom} {gerant.nom}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {terrains?.map((terrain) => (
-            <div key={terrain.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={terrain.id}
-                checked={assignedTerrains[terrain.id] || false}
-                onCheckedChange={() => handleTerrainToggle(terrain.id)}
-              />
-              <label
-                htmlFor={terrain.id}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {terrain.nom}
-              </label>
-            </div>
-          ))}
-        </div>
+        <ScrollArea className="h-[300px] pr-4">
+          <div className="space-y-4">
+            {terrains?.map((terrain) => (
+              <div key={terrain.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={terrain.id}
+                  checked={assignedTerrains[terrain.id] || false}
+                  onCheckedChange={(checked) =>
+                    handleTerrainAssignment(terrain.id, checked as boolean)
+                  }
+                />
+                <label
+                  htmlFor={terrain.id}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {terrain.nom}
+                </label>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )
