@@ -1,16 +1,9 @@
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
-import { toast } from "sonner"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 
 interface GerantTerrainDialogProps {
   gerant: any
@@ -19,6 +12,7 @@ interface GerantTerrainDialogProps {
 
 export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProps) {
   const { user } = useAuth()
+  const [assignedTerrains, setAssignedTerrains] = useState<{ [key: string]: boolean }>({})
 
   // Récupérer les terrains du propriétaire
   const { data: terrains } = useQuery({
@@ -30,127 +24,140 @@ export function GerantTerrainDialog({ gerant, onClose }: GerantTerrainDialogProp
         .eq("user_id", user?.id)
         .single()
 
-      if (!profileData) throw new Error("Profile not found")
-
-      const { data, error } = await supabase
+      const { data: terrains } = await supabase
         .from("terrains")
         .select("*")
         .eq("proprietaire_id", profileData.id)
 
-      if (error) throw error
-      return data
+      return terrains || []
     },
     enabled: !!user && !!gerant,
   })
 
-  // Récupérer les droits actuels du gérant
-  const { data: droitsActuels, refetch: refetchDroits } = useQuery({
-    queryKey: ["droits", gerant?.id],
+  // Récupérer les assignations existantes
+  const { data: existingAssignments } = useQuery({
+    queryKey: ["droits_gerants", gerant?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("droits_gerants")
-        .select("*")
+        .select("terrain_id")
         .eq("gerant_id", gerant.id)
-
-      if (error) throw error
-      return data
+      
+      return data || []
     },
     enabled: !!gerant,
   })
 
-  const handleTerrainToggle = async (terrainId: string, isChecked: boolean) => {
-    try {
-      if (isChecked) {
-        // Vérifier d'abord si le droit existe déjà
-        const { data: existingDroit, error: checkError } = await supabase
-          .from("droits_gerants")
-          .select("*")
-          .eq("gerant_id", gerant.id)
-          .eq("terrain_id", terrainId)
-          .maybeSingle()
+  // Mettre à jour l'état local des assignations quand les données sont chargées
+  useEffect(() => {
+    if (existingAssignments) {
+      const assignments: { [key: string]: boolean } = {}
+      existingAssignments.forEach((assignment) => {
+        assignments[assignment.terrain_id] = true
+      })
+      setAssignedTerrains(assignments)
+    }
+  }, [existingAssignments])
 
-        if (checkError) throw checkError
+  // Gérer le changement d'état d'une checkbox
+  const handleTerrainToggle = async (terrainId: string) => {
+    const isCurrentlyAssigned = assignedTerrains[terrainId]
 
-        // Si le droit existe déjà, mettre à jour l'UI et sortir
-        if (existingDroit) {
-          await refetchDroits()
-          return
-        }
+    if (!isCurrentlyAssigned) {
+      // Créer une nouvelle assignation
+      const { error } = await supabase
+        .from("droits_gerants")
+        .insert({
+          gerant_id: gerant.id,
+          terrain_id: terrainId,
+          peut_gerer_reservations: true,
+          peut_annuler_reservations: true,
+          peut_modifier_terrain: true,
+        })
 
-        // Ajouter les droits
-        const { error } = await supabase
-          .from("droits_gerants")
-          .insert({
-            gerant_id: gerant.id,
-            terrain_id: terrainId,
-            peut_gerer_reservations: true,
-            peut_annuler_reservations: true,
-            peut_modifier_terrain: true,
-          })
-
-        if (error) {
-          // Si c'est une erreur de doublon, on met simplement à jour l'UI
-          if (error.code === "23505") {
-            await refetchDroits()
-            return
-          }
-          throw error
-        }
-        
-        await refetchDroits()
-        toast.success("Terrain assigné avec succès")
-      } else {
-        // Retirer les droits
-        const { error } = await supabase
-          .from("droits_gerants")
-          .delete()
-          .eq("gerant_id", gerant.id)
-          .eq("terrain_id", terrainId)
-
-        if (error) throw error
-        await refetchDroits()
-        toast.success("Assignation retirée avec succès")
+      if (!error) {
+        setAssignedTerrains(prev => ({
+          ...prev,
+          [terrainId]: true
+        }))
       }
-    } catch (error: any) {
-      console.error("Erreur lors de la modification des droits:", error)
-      toast.error("Une erreur est survenue")
+    } else {
+      // Supprimer l'assignation existante
+      const { error } = await supabase
+        .from("droits_gerants")
+        .delete()
+        .eq("gerant_id", gerant.id)
+        .eq("terrain_id", terrainId)
+
+      if (!error) {
+        setAssignedTerrains(prev => ({
+          ...prev,
+          [terrainId]: false
+        }))
+      }
     }
   }
 
+  // Écouter les changements en temps réel
+  useEffect(() => {
+    const channel = supabase
+      .channel('droits_gerants_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'droits_gerants',
+          filter: `gerant_id=eq.${gerant?.id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setAssignedTerrains(prev => ({
+              ...prev,
+              [payload.new.terrain_id]: true
+            }))
+          } else if (payload.eventType === 'DELETE') {
+            setAssignedTerrains(prev => ({
+              ...prev,
+              [payload.old.terrain_id]: false
+            }))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [gerant?.id])
+
+  if (!gerant) return null
+
   return (
     <Dialog open={!!gerant} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Gestion des terrains - {gerant?.prenom} {gerant?.nom}
+            Assigner des terrains à {gerant.prenom} {gerant.nom}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {terrains?.map((terrain) => {
-            const isAssigned = droitsActuels?.some(
-              (droit) => droit.terrain_id === terrain.id
-            )
-
-            return (
-              <div key={terrain.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={terrain.id}
-                  checked={isAssigned}
-                  onCheckedChange={(checked) => 
-                    handleTerrainToggle(terrain.id, checked as boolean)
-                  }
-                />
-                <Label htmlFor={terrain.id}>{terrain.nom}</Label>
-              </div>
-            )
-          })}
-
-          {terrains?.length === 0 && (
-            <p className="text-center text-muted-foreground">
-              Aucun terrain disponible
-            </p>
-          )}
+          {terrains?.map((terrain) => (
+            <div key={terrain.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={terrain.id}
+                checked={assignedTerrains[terrain.id] || false}
+                onCheckedChange={() => handleTerrainToggle(terrain.id)}
+              />
+              <label
+                htmlFor={terrain.id}
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {terrain.nom}
+              </label>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
