@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
+import { useEffect } from "react"
 import {
   Table,
   TableBody,
@@ -10,14 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronUp } from "lucide-react"
-import { GerantTerrainsList } from "./GerantTerrainsList"
+import { GerantTerrainDialog } from "./GerantTerrainDialog"
 
 interface GerantsListProps {
   searchQuery: string
@@ -25,11 +19,12 @@ interface GerantsListProps {
 
 export function GerantsList({ searchQuery }: GerantsListProps) {
   const { user } = useAuth()
-  const [expandedGerant, setExpandedGerant] = useState<string | null>(null)
+  const [selectedGerant, setSelectedGerant] = useState<any>(null)
 
-  const { data: gerants, isLoading } = useQuery({
+  const { data: gerants, isLoading, refetch } = useQuery({
     queryKey: ["gerants", searchQuery],
     queryFn: async () => {
+      // D'abord, récupérer l'ID du profil du propriétaire connecté
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -38,44 +33,48 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
 
       if (profileError) throw profileError
 
+      // Ensuite, récupérer tous les gérants associés à ce propriétaire
       let query = supabase
         .from("profiles")
         .select("*")
         .eq("proprietaire_id", profileData.id)
         .eq("role", "gerant")
 
+      // Ajouter la recherche si un terme est fourni
       if (searchQuery) {
         query = query.or(`nom.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
       }
 
       const { data, error } = await query.order("created_at", { ascending: false })
-      if (error) throw error
-      return data
-    },
-    enabled: !!user,
-  })
-
-  const { data: terrains } = useQuery({
-    queryKey: ["terrains", user?.id],
-    queryFn: async () => {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user?.id)
-        .single()
-
-      if (!profileData) throw new Error("Profile not found")
-
-      const { data, error } = await supabase
-        .from("terrains")
-        .select("*")
-        .eq("proprietaire_id", profileData.id)
 
       if (error) throw error
       return data
     },
     enabled: !!user,
   })
+
+  // Écouter les changements en temps réel
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `role=eq.gerant`
+        },
+        () => {
+          refetch()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [refetch])
 
   if (isLoading) {
     return (
@@ -86,22 +85,25 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
   }
 
   return (
-    <div className="rounded-md border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Prénom</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Téléphone</TableHead>
-            <TableHead>Date de création</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {gerants?.map((gerant) => (
-            <Collapsible key={gerant.id}>
-              <TableRow>
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nom</TableHead>
+              <TableHead>Prénom</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Téléphone</TableHead>
+              <TableHead>Date de création</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {gerants?.map((gerant) => (
+              <TableRow 
+                key={gerant.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => setSelectedGerant(gerant)}
+              >
                 <TableCell>{gerant.nom}</TableCell>
                 <TableCell>{gerant.prenom}</TableCell>
                 <TableCell>{gerant.email}</TableCell>
@@ -109,45 +111,23 @@ export function GerantsList({ searchQuery }: GerantsListProps) {
                 <TableCell>
                   {new Date(gerant.created_at).toLocaleDateString()}
                 </TableCell>
-                <TableCell>
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExpandedGerant(
-                        expandedGerant === gerant.id ? null : gerant.id
-                      )}
-                    >
-                      {expandedGerant === gerant.id ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
+              </TableRow>
+            ))}
+            {gerants?.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
+                  Aucun gérant trouvé
                 </TableCell>
               </TableRow>
-              <CollapsibleContent>
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <GerantTerrainsList 
-                      gerant={gerant}
-                      terrains={terrains || []}
-                    />
-                  </TableCell>
-                </TableRow>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-          {gerants?.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-4">
-                Aucun gérant trouvé
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <GerantTerrainDialog
+        gerant={selectedGerant}
+        onClose={() => setSelectedGerant(null)}
+      />
+    </>
   )
 }
