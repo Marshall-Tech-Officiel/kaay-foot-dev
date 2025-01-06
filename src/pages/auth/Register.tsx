@@ -26,13 +26,6 @@ export default function Register() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            nom,
-            prenom,
-            telephone,
-          },
-        },
       })
 
       if (authError) throw authError
@@ -46,7 +39,7 @@ export default function Register() {
         .from('profiles')
         .insert([
           {
-            user_id: authData.user.id, // Explicitly set the user_id
+            user_id: authData.user.id,
             email,
             nom,
             prenom,
@@ -54,10 +47,11 @@ export default function Register() {
             role: 'reserviste'
           }
         ])
-        .select()
 
       if (profileError) {
         console.error("Profile creation error:", profileError)
+        // If profile creation fails, we should clean up the auth user
+        await supabase.auth.signOut()
         throw profileError
       }
 
