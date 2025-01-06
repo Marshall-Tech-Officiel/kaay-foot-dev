@@ -89,7 +89,7 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_cours"
+        statut: "en_attente"
       }
 
       console.log("Reservation data:", reservationData)
