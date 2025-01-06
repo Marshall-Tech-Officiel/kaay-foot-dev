@@ -101,6 +101,10 @@ export function ReservationDialog({
   }
 
   const handleReservation = () => {
+    if (!selectedDate) {
+      toast.error("Veuillez sélectionner une date")
+      return
+    }
     if (selectedHours.length === 0) {
       toast.error("Veuillez sélectionner au moins une heure")
       return
@@ -109,6 +113,11 @@ export function ReservationDialog({
   }
 
   const handleRequestReservation = async () => {
+    if (!selectedDate || selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner une date et au moins une heure")
+      return
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -128,13 +137,16 @@ export function ReservationDialog({
         return
       }
 
+      // Format the time properly with leading zeros and minutes
+      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
+
       const { error } = await supabase
         .from("reservations")
         .insert({
           terrain_id: terrainId,
           reserviste_id: profile.id,
-          date_reservation: format(selectedDate!, "yyyy-MM-dd"),
-          heure_debut: `${selectedHours[0].toString().padStart(2, "0")}:00`,
+          date_reservation: format(selectedDate, "yyyy-MM-dd"),
+          heure_debut: heureDebut,
           nombre_heures: selectedHours.length,
           montant_total: calculateTotalPrice(),
           statut: "en_cours"
