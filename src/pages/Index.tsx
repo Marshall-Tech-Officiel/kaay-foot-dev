@@ -33,7 +33,7 @@ const Index = () => {
         <h1 className="text-4xl font-bold mb-2">Mini-Foot</h1>
         <div className="h-1 w-24 bg-primary mb-4" />
         <p className="text-xl text-muted-foreground mb-8">
-          Gérez vos terrains de foot en toute simplicité
+          Réservez votre terrain de foot en quelques clics
         </p>
         
         {/* Search Section */}
@@ -55,7 +55,7 @@ const Index = () => {
             onClick={() => navigate('/register')}
             className="px-6 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
           >
-            Inscription
+            Créer un compte
           </button>
         </div>
       </div>
