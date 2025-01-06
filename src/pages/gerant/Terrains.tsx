@@ -13,13 +13,17 @@ export default function GerantTerrains() {
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
+      console.log("Fetching profile for user ID:", user?.id)
       const { data, error } = await supabase
         .from("profiles")
         .select("id")
         .eq("user_id", user?.id)
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching profile:", error)
+        throw error
+      }
       console.log("Profile data:", data)
       return data
     },
@@ -32,7 +36,7 @@ export default function GerantTerrains() {
     queryFn: async () => {
       console.log("Fetching terrains for profile ID:", profile?.id)
       
-      // Modifié pour d'abord vérifier les droits_gerants
+      // First, get the terrain IDs from droits_gerants
       const { data: droits, error: droitsError } = await supabase
         .from("droits_gerants")
         .select("terrain_id")
@@ -45,11 +49,13 @@ export default function GerantTerrains() {
 
       console.log("Droits data:", droits)
 
-      if (droits.length === 0) {
+      if (!droits || droits.length === 0) {
+        console.log("No terrains assigned to this gérant")
         return []
       }
 
       const terrainIds = droits.map(d => d.terrain_id)
+      console.log("Terrain IDs to fetch:", terrainIds)
 
       const { data: terrains, error: terrainsError } = await supabase
         .from("terrains")
@@ -106,6 +112,7 @@ export default function GerantTerrains() {
               <TerrainCard 
                 key={terrain.id} 
                 terrain={terrain}
+                showProprietaire
               />
             ))}
           </div>
