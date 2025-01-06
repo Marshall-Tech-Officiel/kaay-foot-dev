@@ -28,7 +28,7 @@ export function TerrainCard({ terrain, showProprietaire = false }: TerrainCardPr
   const proprietaire = terrain.profiles ? `${terrain.profiles.prenom} ${terrain.profiles.nom}` : "Non assigné"
 
   return (
-    <Link to={`/gerant/terrains/${terrain.id}`} className="block">
+    <Link to={`/reserviste/terrains/${terrain.id}`} className="block">
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <div className="aspect-video relative overflow-hidden bg-muted">
           {terrain.photos?.[0]?.url ? (
