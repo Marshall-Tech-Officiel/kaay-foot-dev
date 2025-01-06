@@ -1,193 +1,171 @@
-import { Toaster } from "@/components/ui/toaster"
-import { Toaster as Sonner } from "@/components/ui/sonner"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { RouterProvider, createBrowserRouter } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { Toaster } from "@/components/ui/sonner"
 import { PrivateRoute } from "@/components/auth/PrivateRoute"
-import { lazy, Suspense } from "react"
 
-// Pages publiques
-import Index from "./pages/Index"
-const Login = lazy(() => import("./pages/auth/Login"))
-const Register = lazy(() => import("./pages/auth/Register"))
+// Pages
+import Index from "@/pages/Index"
+import Login from "@/pages/auth/Login"
+import Register from "@/pages/auth/Register"
+import Error404 from "@/pages/Error404"
+import Error403 from "@/pages/Error403"
 
-// Pages d'erreur
-const Error404 = lazy(() => import("./pages/Error404"))
-const Error403 = lazy(() => import("./pages/Error403"))
+// Admin Pages
+import AdminDashboard from "@/pages/admin/Dashboard"
+import AdminTerrains from "@/pages/admin/Terrains"
+import AdminProprietaires from "@/pages/admin/Proprietaires"
+import AdminProfil from "@/pages/admin/Profil"
 
-// Pages Admin
-const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"))
-const AdminTerrains = lazy(() => import("./pages/admin/Terrains"))
-const AdminProprietaires = lazy(() => import("./pages/admin/Proprietaires"))
-const AdminProfil = lazy(() => import("./pages/admin/Profil"))
+// Proprietaire Pages
+import ProprietaireDashboard from "@/pages/proprietaire/Dashboard"
+import ProprietaireTerrains from "@/pages/proprietaire/Terrains"
+import ProprietaireTerrainDetails from "@/pages/proprietaire/TerrainDetails"
+import ProprietaireGerants from "@/pages/proprietaire/Gerants"
+import ProprietaireReservations from "@/pages/proprietaire/Reservations"
+import ProprietaireProfil from "@/pages/proprietaire/Profil"
 
-// Pages Propriétaire
-const ProprietaireDashboard = lazy(() => import("./pages/proprietaire/Dashboard"))
-const ProprietaireTerrains = lazy(() => import("./pages/proprietaire/Terrains"))
-const ProprietaireTerrainDetails = lazy(() => import("./pages/proprietaire/TerrainDetails"))
-const ProprietaireGerants = lazy(() => import("./pages/proprietaire/Gerants"))
-const ProprietaireReservations = lazy(() => import("./pages/proprietaire/Reservations"))
-const ProprietaireProfil = lazy(() => import("./pages/proprietaire/Profil"))
+// Gerant Pages
+import GerantDashboard from "@/pages/gerant/Dashboard"
+import GerantTerrains from "@/pages/gerant/Terrains"
+import GerantTerrainDetails from "@/pages/gerant/TerrainDetails"
+import GerantReservations from "@/pages/gerant/Reservations"
+import GerantProfile from "@/pages/gerant/Profile"
 
-// Pages Gérant
-const GerantDashboard = lazy(() => import("./pages/gerant/Dashboard"))
-const GerantTerrains = lazy(() => import("./pages/gerant/Terrains"))
-const GerantTerrainDetails = lazy(() => import("./pages/gerant/TerrainDetails"))
-const GerantReservations = lazy(() => import("./pages/gerant/Reservations"))
-const GerantProfile = lazy(() => import("./pages/gerant/Profile"))
-
-// Pages Réserviste
-const ReservisteAccueil = lazy(() => import("./pages/reserviste/Accueil"))
-const ReservisteReservations = lazy(() => import("./pages/reserviste/Reservations"))
-const ReservisteProfile = lazy(() => import("./pages/reserviste/Profile"))
+// Reserviste Pages
+import ReservisteAccueil from "@/pages/reserviste/Accueil"
+import ReservisteProfile from "@/pages/reserviste/Profile"
+import ReservisteReservations from "@/pages/reserviste/Reservations"
+import TerrainDetails from "@/pages/reserviste/TerrainDetails"
 
 const queryClient = new QueryClient()
 
-const LoadingSpinner = () => (
-  <div className="flex h-screen w-full items-center justify-center">
-    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-  </div>
-)
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Index />,
+    errorElement: <Error404 />,
+  },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
+  },
+  {
+    path: "/admin",
+    element: <PrivateRoute allowedRoles={["admin"]} />,
+    children: [
+      {
+        path: "dashboard",
+        element: <AdminDashboard />,
+      },
+      {
+        path: "terrains",
+        element: <AdminTerrains />,
+      },
+      {
+        path: "proprietaires",
+        element: <AdminProprietaires />,
+      },
+      {
+        path: "profile",
+        element: <AdminProfil />,
+      },
+    ],
+  },
+  {
+    path: "/proprietaire",
+    element: <PrivateRoute allowedRoles={["proprietaire"]} />,
+    children: [
+      {
+        path: "dashboard",
+        element: <ProprietaireDashboard />,
+      },
+      {
+        path: "terrains",
+        element: <ProprietaireTerrains />,
+      },
+      {
+        path: "terrains/:id",
+        element: <ProprietaireTerrainDetails />,
+      },
+      {
+        path: "gerants",
+        element: <ProprietaireGerants />,
+      },
+      {
+        path: "reservations",
+        element: <ProprietaireReservations />,
+      },
+      {
+        path: "profil",
+        element: <ProprietaireProfil />,
+      },
+    ],
+  },
+  {
+    path: "/gerant",
+    element: <PrivateRoute allowedRoles={["gerant"]} />,
+    children: [
+      {
+        path: "dashboard",
+        element: <GerantDashboard />,
+      },
+      {
+        path: "terrains",
+        element: <GerantTerrains />,
+      },
+      {
+        path: "terrains/:id",
+        element: <GerantTerrainDetails />,
+      },
+      {
+        path: "reservations",
+        element: <GerantReservations />,
+      },
+      {
+        path: "profile",
+        element: <GerantProfile />,
+      },
+    ],
+  },
+  {
+    path: "/reserviste",
+    element: <PrivateRoute allowedRoles={["reserviste"]} />,
+    children: [
+      {
+        path: "accueil",
+        element: <ReservisteAccueil />,
+      },
+      {
+        path: "terrains/:id",
+        element: <TerrainDetails />,
+      },
+      {
+        path: "profile",
+        element: <ReservisteProfile />,
+      },
+      {
+        path: "reservations",
+        element: <ReservisteReservations />,
+      },
+    ],
+  },
+  {
+    path: "/403",
+    element: <Error403 />,
+  },
+])
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
       <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            {/* Routes publiques */}
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Routes Admin */}
-            <Route path="/admin" element={
-              <PrivateRoute allowedRoles={["admin"]}>
-                <Navigate to="/admin/dashboard" replace />
-              </PrivateRoute>
-            } />
-            <Route path="/admin/dashboard" element={
-              <PrivateRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </PrivateRoute>
-            } />
-            <Route path="/admin/terrains" element={
-              <PrivateRoute allowedRoles={["admin"]}>
-                <AdminTerrains />
-              </PrivateRoute>
-            } />
-            <Route path="/admin/proprietaires" element={
-              <PrivateRoute allowedRoles={["admin"]}>
-                <AdminProprietaires />
-              </PrivateRoute>
-            } />
-            <Route path="/admin/profil" element={
-              <PrivateRoute allowedRoles={["admin"]}>
-                <AdminProfil />
-              </PrivateRoute>
-            } />
-
-            {/* Routes Propriétaire */}
-            <Route path="/proprietaire" element={
-              <PrivateRoute allowedRoles={["proprietaire"]}>
-                <Navigate to="/proprietaire/dashboard" replace />
-              </PrivateRoute>
-            } />
-            <Route path="/proprietaire/dashboard" element={
-              <PrivateRoute allowedRoles={["proprietaire"]}>
-                <ProprietaireDashboard />
-              </PrivateRoute>
-            } />
-            <Route path="/proprietaire/terrains" element={
-              <PrivateRoute allowedRoles={["proprietaire"]}>
-                <ProprietaireTerrains />
-              </PrivateRoute>
-            } />
-            <Route path="/proprietaire/terrains/:id" element={
-              <PrivateRoute allowedRoles={["proprietaire"]}>
-                <ProprietaireTerrainDetails />
-              </PrivateRoute>
-            } />
-            <Route path="/proprietaire/gerants" element={
-              <PrivateRoute allowedRoles={["proprietaire"]}>
-                <ProprietaireGerants />
-              </PrivateRoute>
-            } />
-            <Route path="/proprietaire/reservations" element={
-              <PrivateRoute allowedRoles={["proprietaire"]}>
-                <ProprietaireReservations />
-              </PrivateRoute>
-            } />
-            <Route path="/proprietaire/profil" element={
-              <PrivateRoute allowedRoles={["proprietaire"]}>
-                <ProprietaireProfil />
-              </PrivateRoute>
-            } />
-
-            {/* Routes Gérant */}
-            <Route path="/gerant" element={
-              <PrivateRoute allowedRoles={["gerant"]}>
-                <Navigate to="/gerant/dashboard" replace />
-              </PrivateRoute>
-            } />
-            <Route path="/gerant/dashboard" element={
-              <PrivateRoute allowedRoles={["gerant"]}>
-                <GerantDashboard />
-              </PrivateRoute>
-            } />
-            <Route path="/gerant/terrains" element={
-              <PrivateRoute allowedRoles={["gerant"]}>
-                <GerantTerrains />
-              </PrivateRoute>
-            } />
-            <Route path="/gerant/terrains/:id" element={
-              <PrivateRoute allowedRoles={["gerant"]}>
-                <GerantTerrainDetails />
-              </PrivateRoute>
-            } />
-            <Route path="/gerant/reservations" element={
-              <PrivateRoute allowedRoles={["gerant"]}>
-                <GerantReservations />
-              </PrivateRoute>
-            } />
-            <Route path="/gerant/profile" element={
-              <PrivateRoute allowedRoles={["gerant"]}>
-                <GerantProfile />
-              </PrivateRoute>
-            } />
-
-            {/* Routes Réserviste */}
-            <Route path="/reserviste" element={
-              <PrivateRoute allowedRoles={["reserviste"]}>
-                <Navigate to="/reserviste/accueil" replace />
-              </PrivateRoute>
-            } />
-            <Route path="/reserviste/accueil" element={
-              <PrivateRoute allowedRoles={["reserviste"]}>
-                <ReservisteAccueil />
-              </PrivateRoute>
-            } />
-            <Route path="/reserviste/reservations" element={
-              <PrivateRoute allowedRoles={["reserviste"]}>
-                <ReservisteReservations />
-              </PrivateRoute>
-            } />
-            <Route path="/reserviste/profile" element={
-              <PrivateRoute allowedRoles={["reserviste"]}>
-                <ReservisteProfile />
-              </PrivateRoute>
-            } />
-
-            {/* Pages d'erreur */}
-            <Route path="/403" element={<Error403 />} />
-            <Route path="*" element={<Error404 />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-)
+    </QueryClientProvider>
+  )
+}
 
 export default App
