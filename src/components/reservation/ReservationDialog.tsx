@@ -108,11 +108,47 @@ export function ReservationDialog({
     setShowConfirmation(true)
   }
 
-  const handleRequestReservation = () => {
-    console.log("Demande de réservation")
-    setShowConfirmation(false)
-    setIsReservationDialogOpen(false)
-    toast.success("Demande de réservation envoyée")
+  const handleRequestReservation = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        toast.error("Vous devez être connecté pour faire une réservation")
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (!profile) {
+        toast.error("Profil non trouvé")
+        return
+      }
+
+      const { error } = await supabase
+        .from("reservations")
+        .insert({
+          terrain_id: terrainId,
+          reserviste_id: profile.id,
+          date_reservation: format(selectedDate!, "yyyy-MM-dd"),
+          heure_debut: `${selectedHours[0].toString().padStart(2, "0")}:00`,
+          nombre_heures: selectedHours.length,
+          montant_total: calculateTotalPrice(),
+          statut: "en_cours"
+        })
+
+      if (error) throw error
+
+      toast.success("Demande de réservation envoyée")
+      setShowConfirmation(false)
+      setIsReservationDialogOpen(false)
+    } catch (error) {
+      console.error("Erreur lors de la création de la réservation:", error)
+      toast.error("Erreur lors de la création de la réservation")
+    }
   }
 
   const handlePayNow = () => {
@@ -133,17 +169,17 @@ export function ReservationDialog({
             <DialogTitle>Réserver {terrainNom}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-6 md:grid-cols-2">
-            <div>
+            <div className="space-y-4">
               <ReservationCalendar
                 selectedDate={selectedDate}
                 onDateSelect={setSelectedDate}
               />
+              <ReservationLegend />
             </div>
             <div className="space-y-4">
               <h3 className="font-medium">Heures disponibles</h3>
               {selectedDate ? (
                 <>
-                  <ReservationLegend />
                   <HourSelector
                     hours={hours}
                     selectedHours={selectedHours}
