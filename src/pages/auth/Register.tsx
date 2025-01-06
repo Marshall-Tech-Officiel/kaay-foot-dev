@@ -28,7 +28,18 @@ export default function Register() {
         password,
       })
 
-      if (authError) throw authError
+      if (authError) {
+        // Check specifically for rate limit error
+        if (authError.message.includes('rate_limit')) {
+          toast({
+            variant: "destructive",
+            title: "Limite de tentatives atteinte",
+            description: "Pour des raisons de sécurité, veuillez patienter quelques secondes avant de réessayer.",
+          })
+          return
+        }
+        throw authError
+      }
 
       if (!authData.user?.id) {
         throw new Error("No user ID returned from signup")
