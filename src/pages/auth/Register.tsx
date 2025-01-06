@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 
 export default function Register() {
@@ -26,6 +26,13 @@ export default function Register() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            nom,
+            prenom,
+            telephone,
+          },
+        },
       })
 
       if (authError) throw authError
@@ -44,6 +51,7 @@ export default function Register() {
               role: 'reserviste'
             }
           ])
+          .select()
 
         if (profileError) throw profileError
 
@@ -55,6 +63,7 @@ export default function Register() {
         navigate('/login')
       }
     } catch (error: any) {
+      console.error("Registration error:", error)
       toast({
         variant: "destructive",
         title: "Erreur lors de l'inscription",
