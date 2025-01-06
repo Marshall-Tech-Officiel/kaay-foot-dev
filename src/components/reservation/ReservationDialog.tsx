@@ -56,6 +56,7 @@ export function ReservationDialog({ terrainId, terrainNom }: ReservationDialogPr
     if (lastSelectedHour !== null) {
       setSelectedHours([...selectedHours, lastSelectedHour])
       setShowConfirmDialog(false)
+      // Ne pas fermer le dialogue principal
     }
   }
 
