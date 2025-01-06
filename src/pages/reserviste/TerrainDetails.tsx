@@ -94,7 +94,14 @@ export default function TerrainDetails() {
                   </div>
                 )}
 
-                <ReservationDialog terrainId={terrain.id} terrainNom={terrain.nom} />
+                <ReservationDialog 
+                  terrainId={terrain.id} 
+                  terrainNom={terrain.nom}
+                  prixJour={terrain.prix_jour}
+                  prixNuit={terrain.prix_nuit}
+                  heureDebutNuit={terrain.heure_debut_nuit}
+                  heureFinNuit={terrain.heure_fin_nuit}
+                />
               </div>
             </CardContent>
           </Card>
