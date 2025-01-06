@@ -20,14 +20,14 @@ type UserRole = "admin" | "proprietaire" | "gerant" | "reserviste"
 
 // Menu items selon le rôle
 const adminMenu = [
-  { title: "Dashboard", icon: Home, path: "/admin" },
+  { title: "Dashboard", icon: Home, path: "/admin/dashboard" },
   { title: "Gestion Terrains", icon: Briefcase, path: "/admin/terrains" },
   { title: "Gestion Propriétaires", icon: Users, path: "/admin/proprietaires" },
   { title: "Profil", icon: User, path: "/admin/profil" },
 ]
 
 const proprietaireMenu = [
-  { title: "Dashboard", icon: Home, path: "/proprietaire" },
+  { title: "Dashboard", icon: Home, path: "/proprietaire/dashboard" },
   { title: "Mes Terrains", icon: Briefcase, path: "/proprietaire/terrains" },
   { title: "Gestion Gérants", icon: Users, path: "/proprietaire/gerants" },
   { title: "Réservations", icon: Calendar, path: "/proprietaire/reservations" },
@@ -35,14 +35,14 @@ const proprietaireMenu = [
 ]
 
 const gerantMenu = [
-  { title: "Dashboard", icon: Home, path: "/gerant" },
+  { title: "Dashboard", icon: Home, path: "/gerant/dashboard" },
   { title: "Terrains Assignés", icon: Briefcase, path: "/gerant/terrains" },
   { title: "Réservations", icon: Calendar, path: "/gerant/reservations" },
   { title: "Profil", icon: User, path: "/gerant/profil" },
 ]
 
 const reservisteMenu = [
-  { title: "Accueil", icon: Home, path: "/reserviste" },
+  { title: "Accueil", icon: Home, path: "/reserviste/accueil" },
   { title: "Mes Réservations", icon: Calendar, path: "/reserviste/reservations" },
   { title: "Profil", icon: User, path: "/reserviste/profil" },
 ]
