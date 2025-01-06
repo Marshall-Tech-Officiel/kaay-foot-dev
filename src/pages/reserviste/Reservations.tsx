@@ -7,6 +7,7 @@ import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { fr } from "date-fns/locale"
 import { Tables } from "@/integrations/supabase/types"
+import { MainLayout } from "@/components/layout/MainLayout"
 
 type ReservationWithTerrain = Tables<"reservations"> & {
   terrain: Pick<Tables<"terrains">, "nom" | "localisation">
@@ -22,7 +23,6 @@ const statusColors = {
 export default function ReservisteReservations() {
   const { toast } = useToast()
 
-  // Fetch user profile first
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -138,12 +138,20 @@ export default function ReservisteReservations() {
   if (!reservations) return null
 
   return (
-    <div className="container py-8">
-      <h1 className="text-2xl font-bold mb-6">Mes réservations</h1>
-      <DataTable 
-        columns={columns} 
-        data={reservations} 
-      />
-    </div>
+    <MainLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Mes réservations</h1>
+          <p className="text-muted-foreground mt-2">
+            Consultez l'historique de vos réservations
+          </p>
+        </div>
+
+        <DataTable 
+          columns={columns} 
+          data={reservations} 
+        />
+      </div>
+    </MainLayout>
   )
 }
