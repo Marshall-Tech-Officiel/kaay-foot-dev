@@ -3,14 +3,20 @@ import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 import { useParams } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client"
-import { Loader2 } from "lucide-react"
+import { Loader2, MapPin, Clock } from "lucide-react"
 import { TerrainCarousel } from "@/components/terrain/TerrainCarousel"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Calendar } from "@/components/ui/calendar"
+import { useState } from "react"
+import { format } from "date-fns"
+import { fr } from "date-fns/locale"
 
 export default function TerrainDetails() {
   const { id } = useParams()
+  const [selectedDate, setSelectedDate] = useState<Date>()
 
   const { data: terrain, isLoading } = useQuery({
     queryKey: ["terrain-details", id],
@@ -31,6 +37,35 @@ export default function TerrainDetails() {
     },
     enabled: !!id,
   })
+
+  const { data: reservations } = useQuery({
+    queryKey: ["terrain-reservations", id, selectedDate],
+    queryFn: async () => {
+      if (!selectedDate) return []
+      
+      const { data, error } = await supabase
+        .from("reservations")
+        .select("*")
+        .eq("terrain_id", id)
+        .eq("date_reservation", format(selectedDate, "yyyy-MM-dd"))
+
+      if (error) throw error
+      return data
+    },
+    enabled: !!id && !!selectedDate,
+  })
+
+  // Generate available hours (0-23)
+  const hours = Array.from({ length: 24 }, (_, i) => i)
+
+  // Check if an hour is reserved
+  const isHourReserved = (hour: number) => {
+    if (!reservations) return false
+    return reservations.some(reservation => {
+      const reservationHour = parseInt(reservation.heure_debut.split(":")[0])
+      return reservationHour === hour
+    })
+  }
 
   if (isLoading) {
     return (
@@ -93,6 +128,49 @@ export default function TerrainDetails() {
                     <p className="text-muted-foreground">{terrain.description}</p>
                   </div>
                 )}
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full mt-4">Réserver</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Réserver {terrain.nom}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div>
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          locale={fr}
+                          className="rounded-md border"
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <h3 className="font-medium">Heures disponibles</h3>
+                        {selectedDate ? (
+                          <div className="grid grid-cols-4 gap-2">
+                            {hours.map((hour) => (
+                              <Button
+                                key={hour}
+                                variant={isHourReserved(hour) ? "destructive" : "outline"}
+                                className="w-full"
+                                disabled={isHourReserved(hour)}
+                              >
+                                {hour.toString().padStart(2, "0")}:00
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground">
+                            Sélectionnez une date pour voir les heures disponibles
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardContent>
           </Card>
