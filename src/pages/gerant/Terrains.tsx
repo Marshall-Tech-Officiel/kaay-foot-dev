@@ -39,7 +39,8 @@ export default function GerantTerrains() {
             *,
             zone:zones(nom),
             region:regions(nom),
-            photos:photos_terrain(url)
+            photos:photos_terrain(url),
+            profiles:profiles(nom, prenom)
           )
         `)
         .eq("gerant_id", profile?.id)
