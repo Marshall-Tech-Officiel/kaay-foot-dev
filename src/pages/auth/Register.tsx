@@ -22,7 +22,7 @@ export default function Register() {
     setIsLoading(true)
 
     try {
-      // 1. Créer l'utilisateur dans auth.users
+      // 1. Create the user in auth.users
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -37,31 +37,36 @@ export default function Register() {
 
       if (authError) throw authError
 
-      if (authData.user) {
-        // 2. Créer le profil dans profiles
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              user_id: authData.user.id,
-              email,
-              nom,
-              prenom,
-              telephone,
-              role: 'reserviste'
-            }
-          ])
-          .select()
-
-        if (profileError) throw profileError
-
-        toast({
-          title: "Inscription réussie",
-          description: "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.",
-        })
-
-        navigate('/login')
+      if (!authData.user?.id) {
+        throw new Error("No user ID returned from signup")
       }
+
+      // 2. Create the profile in public.profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            user_id: authData.user.id, // Explicitly set the user_id
+            email,
+            nom,
+            prenom,
+            telephone,
+            role: 'reserviste'
+          }
+        ])
+        .select()
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError)
+        throw profileError
+      }
+
+      toast({
+        title: "Inscription réussie",
+        description: "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.",
+      })
+
+      navigate('/login')
     } catch (error: any) {
       console.error("Registration error:", error)
       toast({
