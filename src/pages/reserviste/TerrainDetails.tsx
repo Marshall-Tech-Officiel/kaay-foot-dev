@@ -13,10 +13,14 @@ import { Calendar } from "@/components/ui/calendar"
 import { useState } from "react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 export default function TerrainDetails() {
   const { id } = useParams()
   const [selectedDate, setSelectedDate] = useState<Date>()
+  const [selectedHours, setSelectedHours] = useState<number[]>([])
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [lastSelectedHour, setLastSelectedHour] = useState<number | null>(null)
 
   const { data: terrain, isLoading } = useQuery({
     queryKey: ["terrain-details", id],
@@ -65,6 +69,32 @@ export default function TerrainDetails() {
       const reservationHour = parseInt(reservation.heure_debut.split(":")[0])
       return reservationHour === hour
     })
+  }
+
+  const handleHourClick = (hour: number) => {
+    setLastSelectedHour(hour)
+    setShowConfirmDialog(true)
+  }
+
+  const handleAddMoreHours = () => {
+    if (lastSelectedHour !== null) {
+      setSelectedHours([...selectedHours, lastSelectedHour])
+      setShowConfirmDialog(false)
+    }
+  }
+
+  const handleFinishSelection = () => {
+    if (lastSelectedHour !== null) {
+      setSelectedHours([...selectedHours, lastSelectedHour])
+    }
+    setShowConfirmDialog(false)
+    // Ici, vous pouvez ajouter la logique pour finaliser la réservation
+    console.log("Heures sélectionnées:", selectedHours)
+  }
+
+  const isAdjacentToSelected = (hour: number) => {
+    if (selectedHours.length === 0) return true
+    return selectedHours.some(selectedHour => Math.abs(selectedHour - hour) === 1)
   }
 
   if (isLoading) {
@@ -154,9 +184,19 @@ export default function TerrainDetails() {
                             {hours.map((hour) => (
                               <Button
                                 key={hour}
-                                variant={isHourReserved(hour) ? "destructive" : "outline"}
+                                variant={
+                                  selectedHours.includes(hour)
+                                    ? "default"
+                                    : isHourReserved(hour)
+                                    ? "destructive"
+                                    : "outline"
+                                }
                                 className="w-full"
-                                disabled={isHourReserved(hour)}
+                                disabled={
+                                  isHourReserved(hour) ||
+                                  (selectedHours.length > 0 && !isAdjacentToSelected(hour))
+                                }
+                                onClick={() => handleHourClick(hour)}
                               >
                                 {hour.toString().padStart(2, "0")}:00
                               </Button>
@@ -171,6 +211,28 @@ export default function TerrainDetails() {
                     </div>
                   </DialogContent>
                 </Dialog>
+
+                <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmation de l'heure</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Voulez-vous ajouter une autre heure consécutive ou terminer la sélection ?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+                        Annuler
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={handleAddMoreHours}>
+                        Ajouter une autre heure
+                      </AlertDialogAction>
+                      <AlertDialogAction onClick={handleFinishSelection}>
+                        Terminer la sélection
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
