@@ -9,6 +9,23 @@ import { DataTable } from "@/components/ui/data-table"
 import { Badge } from "@/components/ui/badge"
 import { useParams } from "react-router-dom"
 
+type Terrain = {
+  id: string
+  nom: string
+  zone: { nom: string }
+  region: { nom: string }
+}
+
+type Reservation = {
+  id: string
+  date_reservation: string
+  heure_debut: string
+  nombre_heures: number
+  reserviste: { nom: string; prenom: string; telephone: string }
+  statut: string
+  paiement: Array<{ statut: string }>
+}
+
 export default function TerrainDetails() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -28,7 +45,7 @@ export default function TerrainDetails() {
         .single()
 
       if (error) throw error
-      return data
+      return data as Terrain
     },
     enabled: !!id,
   })
@@ -48,7 +65,7 @@ export default function TerrainDetails() {
         .order("date_reservation", { ascending: false })
 
       if (error) throw error
-      return data
+      return data as Reservation[]
     },
     enabled: !!id,
   })
@@ -75,31 +92,31 @@ export default function TerrainDetails() {
   const columns = [
     {
       header: "Date",
-      accessorKey: "date_reservation",
+      accessorKey: "date_reservation" as const,
       cell: (value: string) => new Date(value).toLocaleDateString(),
     },
     {
       header: "Heure",
-      accessorKey: "heure_debut",
+      accessorKey: "heure_debut" as const,
     },
     {
       header: "Durée",
-      accessorKey: "nombre_heures",
+      accessorKey: "nombre_heures" as const,
       cell: (value: number) => `${value}h`,
     },
     {
       header: "Réserviste",
-      accessorKey: "reserviste",
+      accessorKey: "reserviste" as const,
       cell: (value: any) => `${value.prenom} ${value.nom}`,
     },
     {
       header: "Téléphone",
-      accessorKey: "reserviste",
+      accessorKey: "reserviste" as const,
       cell: (value: any) => value.telephone,
     },
     {
       header: "Statut",
-      accessorKey: "statut",
+      accessorKey: "statut" as const,
       cell: (value: string) => (
         <Badge
           variant={
@@ -107,7 +124,7 @@ export default function TerrainDetails() {
               ? "secondary"
               : value === "en_attente"
               ? "outline"
-              : "default"
+              : "destructive"
           }
         >
           {value}
@@ -116,43 +133,36 @@ export default function TerrainDetails() {
     },
     {
       header: "Paiement",
-      accessorKey: "paiement",
+      accessorKey: "paiement" as const,
       cell: (value: any[]) => (
         <Badge
           variant={
-            value?.[0]?.statut === "paye" ? "secondary" : "default"
+            value?.[0]?.statut === "paye" ? "secondary" : "destructive"
           }
         >
           {value?.[0]?.statut || "non payé"}
         </Badge>
       ),
     },
-  ]
+  ] as const
 
   return (
     <MainLayout>
       <div className="container mx-auto py-6">
-        <Breadcrumbs
-          items={[
-            { label: "Tableau de bord", href: "/gerant" },
-            { label: "Terrains", href: "/gerant/terrains" },
-            { label: terrain?.nom || "Détails du terrain", href: `/gerant/terrains/${id}` },
-          ]}
-        />
-
-        <div className="mt-8">
-          <h1 className="mb-2 text-2xl font-bold">{terrain?.nom}</h1>
-          <p className="mb-6 text-muted-foreground">
+        <div className="mb-6">
+          <Breadcrumbs />
+          <h1 className="text-2xl font-bold mt-2">{terrain?.nom}</h1>
+          <p className="text-muted-foreground">
             {terrain?.zone?.nom}, {terrain?.region?.nom}
           </p>
+        </div>
           
-          <div className="mt-8">
-            <h2 className="mb-6 text-xl font-semibold">Réservations</h2>
-            <DataTable
-              columns={columns}
-              data={reservations || []}
-            />
-          </div>
+        <div className="mt-8">
+          <h2 className="mb-6 text-xl font-semibold">Réservations</h2>
+          <DataTable
+            columns={columns}
+            data={reservations || []}
+          />
         </div>
       </div>
     </MainLayout>

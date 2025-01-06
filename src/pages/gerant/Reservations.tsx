@@ -8,6 +8,17 @@ import { supabase } from "@/integrations/supabase/client"
 import { DataTable } from "@/components/ui/data-table"
 import { Badge } from "@/components/ui/badge"
 
+type Reservation = {
+  id: string
+  terrain: { nom: string }
+  date_reservation: string
+  heure_debut: string
+  nombre_heures: number
+  reserviste: { nom: string; prenom: string; telephone: string }
+  statut: string
+  paiement: Array<{ statut: string }>
+}
+
 export default function GerantReservations() {
   const { user } = useAuth()
   const { toast } = useToast()
@@ -75,41 +86,41 @@ export default function GerantReservations() {
   const columns = [
     {
       header: "Terrain",
-      accessorKey: "terrain",
+      accessorKey: "terrain" as const,
       cell: (value: any) => value.nom,
     },
     {
       header: "Date",
-      accessorKey: "date_reservation",
+      accessorKey: "date_reservation" as const,
       cell: (value: string) => new Date(value).toLocaleDateString(),
     },
     {
       header: "Heure",
-      accessorKey: "heure_debut",
+      accessorKey: "heure_debut" as const,
     },
     {
       header: "Durée",
-      accessorKey: "nombre_heures",
+      accessorKey: "nombre_heures" as const,
       cell: (value: number) => `${value}h`,
     },
     {
       header: "Réserviste",
-      accessorKey: "reserviste",
+      accessorKey: "reserviste" as const,
       cell: (value: any) => `${value.prenom} ${value.nom}`,
     },
     {
       header: "Téléphone",
-      accessorKey: "reserviste",
+      accessorKey: "reserviste" as const,
       cell: (value: any) => value.telephone,
     },
     {
       header: "Statut",
-      accessorKey: "statut",
+      accessorKey: "statut" as const,
       cell: (value: string) => (
         <Badge
           variant={
             value === "validee"
-              ? "success"
+              ? "secondary"
               : value === "en_attente"
               ? "outline"
               : "destructive"
@@ -121,31 +132,28 @@ export default function GerantReservations() {
     },
     {
       header: "Paiement",
-      accessorKey: "paiement",
+      accessorKey: "paiement" as const,
       cell: (value: any[]) => (
         <Badge
           variant={
-            value?.[0]?.statut === "paye" ? "success" : "destructive"
+            value?.[0]?.statut === "paye" ? "secondary" : "destructive"
           }
         >
           {value?.[0]?.statut || "non payé"}
         </Badge>
       ),
     },
-  ]
+  ] as const
 
   return (
     <MainLayout>
       <div className="container mx-auto py-6">
-        <Breadcrumbs
-          items={[
-            { label: "Tableau de bord", href: "/gerant" },
-            { label: "Réservations", href: "/gerant/reservations" },
-          ]}
-        />
+        <div className="mb-6">
+          <Breadcrumbs />
+          <h1 className="text-2xl font-bold mt-2">Réservations</h1>
+        </div>
 
         <div className="mt-8">
-          <h1 className="mb-6 text-2xl font-bold">Réservations</h1>
           <DataTable
             columns={columns}
             data={reservations || []}
