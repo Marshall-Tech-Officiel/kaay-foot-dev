@@ -1,14 +1,11 @@
-import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ReservationCalendar } from "./ReservationCalendar"
 import { HourSelector } from "./HourSelector"
 import { ReservationConfirmation } from "./ReservationConfirmation"
 import { ReservationLegend } from "./ReservationLegend"
-import { format } from "date-fns"
-import { useQuery } from "@tanstack/react-query"
-import { supabase } from "@/integrations/supabase/client"
-import { toast } from "sonner"
+import { useReservation } from "./hooks/useReservation"
+import { useReservationHours } from "./hooks/useReservationHours"
 
 interface ReservationDialogProps {
   terrainId: string
@@ -27,37 +24,27 @@ export function ReservationDialog({
   heureDebutNuit,
   heureFinNuit
 }: ReservationDialogProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>()
-  const [selectedHours, setSelectedHours] = useState<number[]>([])
-  const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
-
-  const { data: reservations } = useQuery({
-    queryKey: ["terrain-reservations", terrainId, selectedDate],
-    queryFn: async () => {
-      if (!selectedDate) return []
-      
-      const { data, error } = await supabase
-        .from("reservations")
-        .select("*")
-        .eq("terrain_id", terrainId)
-        .eq("date_reservation", format(selectedDate, "yyyy-MM-dd"))
-
-      if (error) throw error
-      return data
-    },
-    enabled: !!terrainId && !!selectedDate,
+  const {
+    selectedDate,
+    setSelectedDate,
+    selectedHours,
+    setSelectedHours,
+    isReservationDialogOpen,
+    setIsReservationDialogOpen,
+    showConfirmation,
+    setShowConfirmation,
+    calculateTotalPrice,
+    handleRequestReservation,
+    handlePayNow,
+  } = useReservation({
+    terrainId,
+    prixJour,
+    prixNuit,
+    heureDebutNuit,
+    heureFinNuit,
   })
 
-  const hours = Array.from({ length: 24 }, (_, i) => i)
-
-  const isHourReserved = (hour: number) => {
-    if (!reservations) return false
-    return reservations.some(reservation => {
-      const reservationHour = parseInt(reservation.heure_debut.split(":")[0])
-      return reservationHour === hour
-    })
-  }
+  const { hours, isHourReserved, isAdjacentToSelected } = useReservationHours(terrainId, selectedDate)
 
   const handleHourClick = (hour: number) => {
     if (selectedHours.includes(hour)) {
@@ -67,11 +54,6 @@ export function ReservationDialog({
     }
   }
 
-  const isAdjacentToSelected = (hour: number) => {
-    if (selectedHours.length === 0) return true
-    return selectedHours.some(selectedHour => Math.abs(selectedHour - hour) === 1)
-  }
-
   const handleDialogOpenChange = (open: boolean) => {
     setIsReservationDialogOpen(open)
     if (!open) {
@@ -79,25 +61,6 @@ export function ReservationDialog({
       setSelectedHours([])
       setShowConfirmation(false)
     }
-  }
-
-  const calculateTotalPrice = () => {
-    let total = 0
-    const debutNuit = parseInt(heureDebutNuit.split(":")[0])
-    const finNuit = parseInt(heureFinNuit.split(":")[0])
-
-    selectedHours.forEach(hour => {
-      if (
-        (hour >= debutNuit && hour <= 23) || 
-        (hour >= 0 && hour < finNuit)
-      ) {
-        total += prixNuit
-      } else {
-        total += prixJour
-      }
-    })
-
-    return total
   }
 
   const handleReservation = () => {
@@ -110,75 +73,6 @@ export function ReservationDialog({
       return
     }
     setShowConfirmation(true)
-  }
-
-  const handleRequestReservation = async () => {
-    // Double-check validation before proceeding
-    if (!selectedDate || selectedHours.length === 0) {
-      toast.error("Veuillez sélectionner une date et au moins une heure")
-      return
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        toast.error("Vous devez être connecté pour faire une réservation")
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
-
-      if (!profile) {
-        toast.error("Profil non trouvé")
-        return
-      }
-
-      // Ensure selectedHours is not empty before accessing first element
-      if (selectedHours.length === 0) {
-        toast.error("Erreur: Aucune heure sélectionnée")
-        return
-      }
-
-      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
-
-      const reservationData = {
-        terrain_id: terrainId,
-        reserviste_id: profile.id,
-        date_reservation: format(selectedDate as Date, "yyyy-MM-dd"),
-        heure_debut: heureDebut,
-        nombre_heures: selectedHours.length,
-        montant_total: calculateTotalPrice(),
-        statut: "en_cours"
-      }
-
-      const { error } = await supabase
-        .from("reservations")
-        .insert(reservationData)
-
-      if (error) {
-        console.error("Reservation error:", error)
-        throw error
-      }
-
-      toast.success("Demande de réservation envoyée")
-      setShowConfirmation(false)
-      setIsReservationDialogOpen(false)
-    } catch (error) {
-      console.error("Erreur lors de la création de la réservation:", error)
-      toast.error("Erreur lors de la création de la réservation")
-    }
-  }
-
-  const handlePayNow = () => {
-    console.log("Paiement immédiat")
-    setShowConfirmation(false)
-    setIsReservationDialogOpen(false)
-    toast.success("Redirection vers la page de paiement...")
   }
 
   return (
@@ -207,7 +101,7 @@ export function ReservationDialog({
                     hours={hours}
                     selectedHours={selectedHours}
                     isHourReserved={isHourReserved}
-                    isAdjacentToSelected={isAdjacentToSelected}
+                    isAdjacentToSelected={(hour) => isAdjacentToSelected(hour, selectedHours)}
                     onHourClick={handleHourClick}
                   />
                   {selectedHours.length > 0 && (
