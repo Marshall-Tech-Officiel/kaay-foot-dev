@@ -101,6 +101,9 @@ export function ReservationDialog({
   }
 
   const handleReservation = () => {
+    console.log("Selected date:", selectedDate)
+    console.log("Selected hours:", selectedHours)
+    
     if (!selectedDate) {
       toast.error("Veuillez sélectionner une date")
       return
@@ -113,13 +116,23 @@ export function ReservationDialog({
   }
 
   const handleRequestReservation = async () => {
-    if (!selectedDate || selectedHours.length === 0) {
-      toast.error("Veuillez sélectionner une date et au moins une heure")
+    console.log("Starting reservation request...")
+    console.log("Selected date:", selectedDate)
+    console.log("Selected hours:", selectedHours)
+
+    if (!selectedDate) {
+      toast.error("Veuillez sélectionner une date")
+      return
+    }
+
+    if (selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner au moins une heure")
       return
     }
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      console.log("User data:", user)
       
       if (!user) {
         toast.error("Vous devez être connecté pour faire une réservation")
@@ -132,27 +145,35 @@ export function ReservationDialog({
         .eq("user_id", user.id)
         .single()
 
+      console.log("Profile data:", profile)
+
       if (!profile) {
         toast.error("Profil non trouvé")
         return
       }
 
-      // Format the time properly with leading zeros and minutes
       const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
+      console.log("Formatted time:", heureDebut)
+
+      const reservationData = {
+        terrain_id: terrainId,
+        reserviste_id: profile.id,
+        date_reservation: format(selectedDate, "yyyy-MM-dd"),
+        heure_debut: heureDebut,
+        nombre_heures: selectedHours.length,
+        montant_total: calculateTotalPrice(),
+        statut: "en_cours"
+      }
+      console.log("Reservation data:", reservationData)
 
       const { error } = await supabase
         .from("reservations")
-        .insert({
-          terrain_id: terrainId,
-          reserviste_id: profile.id,
-          date_reservation: format(selectedDate, "yyyy-MM-dd"),
-          heure_debut: heureDebut,
-          nombre_heures: selectedHours.length,
-          montant_total: calculateTotalPrice(),
-          statut: "en_cours"
-        })
+        .insert(reservationData)
 
-      if (error) throw error
+      if (error) {
+        console.error("Reservation error:", error)
+        throw error
+      }
 
       toast.success("Demande de réservation envoyée")
       setShowConfirmation(false)
