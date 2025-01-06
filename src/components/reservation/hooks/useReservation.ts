@@ -59,6 +59,7 @@ export function useReservation({
     }
 
     try {
+      // Get the current user
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -66,14 +67,16 @@ export function useReservation({
         return
       }
 
-      const { data: profile } = await supabase
+      // Get the user's profile
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
         .eq("user_id", user.id)
         .single()
 
-      if (!profile) {
-        toast.error("Profil non trouvé")
+      if (profileError || !profile) {
+        console.error("Profile error:", profileError)
+        toast.error("Erreur lors de la récupération du profil")
         return
       }
 
@@ -91,13 +94,13 @@ export function useReservation({
 
       console.log("Reservation data:", reservationData)
 
-      const { error } = await supabase
+      const { error: reservationError } = await supabase
         .from("reservations")
         .insert(reservationData)
 
-      if (error) {
-        console.error("Reservation error:", error)
-        throw error
+      if (reservationError) {
+        console.error("Reservation error:", reservationError)
+        throw reservationError
       }
 
       toast.success("Demande de réservation envoyée")
