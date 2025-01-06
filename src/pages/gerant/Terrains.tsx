@@ -10,64 +10,27 @@ export default function GerantTerrains() {
   const { user } = useAuth()
 
   const { data: terrains, isLoading } = useQuery({
-    queryKey: ["terrains-gerant", user?.id],
+    queryKey: ["terrains-gerant"],
     queryFn: async () => {
-      console.log("Fetching terrains for user ID:", user?.id)
-      
-      // First get the profile
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user?.id)
-        .single()
-
-      if (profileError) {
-        console.error("Error fetching profile:", profileError)
-        throw profileError
-      }
-
-      console.log("Profile found:", profile)
-
-      // Get the terrain IDs from droits_gerants
-      const { data: droits, error: droitsError } = await supabase
+      const { data: assignedTerrains, error } = await supabase
         .from("droits_gerants")
-        .select("terrain_id")
-        .eq("gerant_id", profile.id)
-
-      if (droitsError) {
-        console.error("Error fetching droits:", droitsError)
-        throw droitsError
-      }
-
-      console.log("Droits found:", droits)
-
-      if (!droits?.length) {
-        console.log("No terrains assigned")
-        return []
-      }
-
-      // Extract terrain IDs
-      const terrainIds = droits.map(d => d.terrain_id)
-
-      // Fetch terrains with these IDs
-      const { data: terrains, error: terrainsError } = await supabase
-        .from("terrains")
         .select(`
-          *,
-          zone:zones(nom),
-          region:regions(nom),
-          photos:photos_terrain(url),
-          profiles:proprietaire_id(nom, prenom)
+          terrain_id,
+          terrain:terrains (
+            *,
+            zone:zones(nom),
+            region:regions(nom),
+            photos:photos_terrain(url)
+          )
         `)
-        .in("id", terrainIds)
+        .eq("gerant_id", user?.id)
 
-      if (terrainsError) {
-        console.error("Error fetching terrains:", terrainsError)
-        throw terrainsError
-      }
+      if (error) throw error
 
-      console.log("Terrains found:", terrains)
-      return terrains
+      // Extract terrains from the assignments and remove null values
+      return assignedTerrains
+        .map((assignment) => assignment.terrain)
+        .filter((terrain): terrain is NonNullable<typeof terrain> => terrain !== null)
     },
     enabled: !!user?.id,
   })
@@ -105,7 +68,6 @@ export default function GerantTerrains() {
               <TerrainCard 
                 key={terrain.id} 
                 terrain={terrain}
-                showProprietaire
               />
             ))}
           </div>
