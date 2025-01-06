@@ -59,7 +59,7 @@ export default function GerantReservations() {
 
       if (reservationsError) throw reservationsError
 
-      return data
+      return data as Reservation[]
     },
     enabled: !!user?.id,
   })

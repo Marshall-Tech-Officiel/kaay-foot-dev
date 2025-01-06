@@ -9,11 +9,11 @@ import {
 } from "@/components/ui/table"
 
 interface DataTableProps<TData> {
-  columns: {
+  columns: ReadonlyArray<{
     header: string
     accessorKey: keyof TData
     cell?: (value: any) => React.ReactNode
-  }[]
+  }>
   data: TData[]
 }
 
