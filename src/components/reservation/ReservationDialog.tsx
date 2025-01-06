@@ -6,6 +6,7 @@ import { ReservationConfirmation } from "./ReservationConfirmation"
 import { ReservationLegend } from "./ReservationLegend"
 import { useReservation } from "./hooks/useReservation"
 import { useReservationHours } from "./hooks/useReservationHours"
+import { toast } from "@/hooks/use-toast"
 
 interface ReservationDialogProps {
   terrainId: string
