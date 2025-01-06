@@ -28,7 +28,7 @@ export default function GerantTerrains() {
 
       console.log("Profile found:", profile)
 
-      // Get the terrain IDs first
+      // Get the terrain IDs from droits_gerants
       const { data: droits, error: droitsError } = await supabase
         .from("droits_gerants")
         .select("terrain_id")
@@ -39,14 +39,17 @@ export default function GerantTerrains() {
         throw droitsError
       }
 
+      console.log("Droits found:", droits)
+
       if (!droits?.length) {
         console.log("No terrains assigned")
         return []
       }
 
+      // Extract terrain IDs
       const terrainIds = droits.map(d => d.terrain_id)
 
-      // Then fetch the terrains with these IDs
+      // Fetch terrains with these IDs
       const { data: terrains, error: terrainsError } = await supabase
         .from("terrains")
         .select(`
@@ -54,7 +57,7 @@ export default function GerantTerrains() {
           zone:zones(nom),
           region:regions(nom),
           photos:photos_terrain(url),
-          profiles:profiles(nom, prenom)
+          profiles:proprietaire_id(nom, prenom)
         `)
         .in("id", terrainIds)
 
