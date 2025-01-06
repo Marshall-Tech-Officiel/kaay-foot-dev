@@ -1,19 +1,19 @@
+import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
-import { useParams } from "react-router-dom"
-import { supabase } from "@/integrations/supabase/client"
 import { Loader2, MapPin, Clock } from "lucide-react"
 import { TerrainCarousel } from "@/components/terrain/TerrainCarousel"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Calendar } from "@/components/ui/calendar"
 import { useState } from "react"
 import { format } from "date-fns"
-import { fr } from "date-fns/locale"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { ReservationCalendar } from "@/components/reservation/ReservationCalendar"
+import { HourSelector } from "@/components/reservation/HourSelector"
+import { ConfirmationDialog } from "@/components/reservation/ConfirmationDialog"
 
 export default function TerrainDetails() {
   const { id } = useParams()
@@ -21,6 +21,7 @@ export default function TerrainDetails() {
   const [selectedHours, setSelectedHours] = useState<number[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [lastSelectedHour, setLastSelectedHour] = useState<number | null>(null)
+  const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
 
   const { data: terrain, isLoading } = useQuery({
     queryKey: ["terrain-details", id],
@@ -59,10 +60,8 @@ export default function TerrainDetails() {
     enabled: !!id && !!selectedDate,
   })
 
-  // Generate available hours (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
-  // Check if an hour is reserved
   const isHourReserved = (hour: number) => {
     if (!reservations) return false
     return reservations.some(reservation => {
@@ -88,7 +87,7 @@ export default function TerrainDetails() {
       setSelectedHours([...selectedHours, lastSelectedHour])
     }
     setShowConfirmDialog(false)
-    // Ici, vous pouvez ajouter la logique pour finaliser la réservation
+    setIsReservationDialogOpen(false)
     console.log("Heures sélectionnées:", selectedHours)
   }
 
@@ -159,7 +158,7 @@ export default function TerrainDetails() {
                   </div>
                 )}
 
-                <Dialog>
+                <Dialog open={isReservationDialogOpen} onOpenChange={setIsReservationDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full mt-4">Réserver</Button>
                   </DialogTrigger>
@@ -169,39 +168,21 @@ export default function TerrainDetails() {
                     </DialogHeader>
                     <div className="grid gap-6 md:grid-cols-2">
                       <div>
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={setSelectedDate}
-                          locale={fr}
-                          className="rounded-md border"
+                        <ReservationCalendar
+                          selectedDate={selectedDate}
+                          onDateSelect={setSelectedDate}
                         />
                       </div>
                       <div className="space-y-4">
                         <h3 className="font-medium">Heures disponibles</h3>
                         {selectedDate ? (
-                          <div className="grid grid-cols-4 gap-2">
-                            {hours.map((hour) => (
-                              <Button
-                                key={hour}
-                                variant={
-                                  selectedHours.includes(hour)
-                                    ? "default"
-                                    : isHourReserved(hour)
-                                    ? "destructive"
-                                    : "outline"
-                                }
-                                className="w-full"
-                                disabled={
-                                  isHourReserved(hour) ||
-                                  (selectedHours.length > 0 && !isAdjacentToSelected(hour))
-                                }
-                                onClick={() => handleHourClick(hour)}
-                              >
-                                {hour.toString().padStart(2, "0")}:00
-                              </Button>
-                            ))}
-                          </div>
+                          <HourSelector
+                            hours={hours}
+                            selectedHours={selectedHours}
+                            isHourReserved={isHourReserved}
+                            isAdjacentToSelected={isAdjacentToSelected}
+                            onHourClick={handleHourClick}
+                          />
                         ) : (
                           <p className="text-muted-foreground">
                             Sélectionnez une date pour voir les heures disponibles
@@ -212,27 +193,12 @@ export default function TerrainDetails() {
                   </DialogContent>
                 </Dialog>
 
-                <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmation de l'heure</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Voulez-vous ajouter une autre heure consécutive ou terminer la sélection ?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
-                        Annuler
-                      </AlertDialogCancel>
-                      <AlertDialogAction onClick={handleAddMoreHours}>
-                        Ajouter une autre heure
-                      </AlertDialogAction>
-                      <AlertDialogAction onClick={handleFinishSelection}>
-                        Terminer la sélection
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <ConfirmationDialog
+                  open={showConfirmDialog}
+                  onOpenChange={setShowConfirmDialog}
+                  onAddMore={handleAddMoreHours}
+                  onFinish={handleFinishSelection}
+                />
               </div>
             </CardContent>
           </Card>
