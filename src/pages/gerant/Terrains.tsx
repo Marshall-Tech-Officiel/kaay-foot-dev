@@ -20,7 +20,7 @@ export default function GerantTerrains() {
         .single()
 
       if (error) throw error
-      console.log("Profile data:", data) // Debug log
+      console.log("Profile data:", data)
       return data
     },
     enabled: !!user?.id,
@@ -30,37 +30,45 @@ export default function GerantTerrains() {
   const { data: terrains, isLoading: isLoadingTerrains } = useQuery({
     queryKey: ["terrains-gerant", profile?.id],
     queryFn: async () => {
-      console.log("Fetching terrains for profile ID:", profile?.id) // Debug log
+      console.log("Fetching terrains for profile ID:", profile?.id)
       
-      const { data: assignedTerrains, error } = await supabase
+      // Modifié pour d'abord vérifier les droits_gerants
+      const { data: droits, error: droitsError } = await supabase
         .from("droits_gerants")
-        .select(`
-          terrain_id,
-          terrain:terrains (
-            *,
-            zone:zones(nom),
-            region:regions(nom),
-            photos:photos_terrain(url),
-            profiles:profiles(nom, prenom)
-          )
-        `)
+        .select("terrain_id")
         .eq("gerant_id", profile?.id)
 
-      if (error) {
-        console.error("Error fetching terrains:", error) // Debug log
-        throw error
+      if (droitsError) {
+        console.error("Error fetching droits:", droitsError)
+        throw droitsError
       }
 
-      console.log("Raw assigned terrains data:", assignedTerrains) // Debug log
+      console.log("Droits data:", droits)
 
-      // Extract terrains from the assignments and remove null values
-      const filteredTerrains = assignedTerrains
-        .map((assignment) => assignment.terrain)
-        .filter((terrain): terrain is NonNullable<typeof terrain> => terrain !== null)
+      if (droits.length === 0) {
+        return []
+      }
 
-      console.log("Filtered terrains:", filteredTerrains) // Debug log
+      const terrainIds = droits.map(d => d.terrain_id)
 
-      return filteredTerrains
+      const { data: terrains, error: terrainsError } = await supabase
+        .from("terrains")
+        .select(`
+          *,
+          zone:zones(nom),
+          region:regions(nom),
+          photos:photos_terrain(url),
+          profiles:profiles(nom, prenom)
+        `)
+        .in("id", terrainIds)
+
+      if (terrainsError) {
+        console.error("Error fetching terrains:", terrainsError)
+        throw terrainsError
+      }
+
+      console.log("Terrains data:", terrains)
+      return terrains
     },
     enabled: !!profile?.id,
   })
