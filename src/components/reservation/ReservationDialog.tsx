@@ -66,11 +66,19 @@ export function ReservationDialog({
 
   const handleReservation = () => {
     if (!selectedDate) {
-      toast.error("Veuillez sélectionner une date")
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner une date"
+      })
       return
     }
     if (selectedHours.length === 0) {
-      toast.error("Veuillez sélectionner au moins une heure")
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner au moins une heure"
+      })
       return
     }
     setShowConfirmation(true)
