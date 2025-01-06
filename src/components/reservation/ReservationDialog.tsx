@@ -2,11 +2,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button"
 import { ReservationCalendar } from "./ReservationCalendar"
 import { HourSelector } from "./HourSelector"
-import { ReservationConfirmation } from "./ReservationConfirmation"
 import { ReservationLegend } from "./ReservationLegend"
 import { useReservation } from "./hooks/useReservation"
 import { useReservationHours } from "./hooks/useReservationHours"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
+import { formatPrice } from "@/lib/utils"
 
 interface ReservationDialogProps {
   terrainId: string
@@ -32,8 +32,6 @@ export function ReservationDialog({
     setSelectedHours,
     isReservationDialogOpen,
     setIsReservationDialogOpen,
-    showConfirmation,
-    setShowConfirmation,
     calculateTotalPrice,
     handleRequestReservation,
     handlePayNow,
@@ -60,87 +58,79 @@ export function ReservationDialog({
     if (!open) {
       setSelectedDate(undefined)
       setSelectedHours([])
-      setShowConfirmation(false)
     }
   }
 
   const handleReservation = () => {
     if (!selectedDate) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Veuillez sélectionner une date"
-      })
+      toast.error("Veuillez sélectionner une date")
       return
     }
     if (selectedHours.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Veuillez sélectionner au moins une heure"
-      })
+      toast.error("Veuillez sélectionner au moins une heure")
       return
     }
-    setShowConfirmation(true)
+    handleRequestReservation()
   }
 
   return (
-    <>
-      <Dialog open={isReservationDialogOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogTrigger asChild>
-          <Button className="w-full mt-4">Réserver</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Réserver {terrainNom}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <ReservationCalendar
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-              />
-              <ReservationLegend />
-            </div>
-            <div className="space-y-4">
-              <h3 className="font-medium">Heures disponibles</h3>
-              {selectedDate ? (
-                <>
-                  <HourSelector
-                    hours={hours}
-                    selectedHours={selectedHours}
-                    isHourReserved={isHourReserved}
-                    isAdjacentToSelected={(hour) => isAdjacentToSelected(hour, selectedHours)}
-                    onHourClick={handleHourClick}
-                  />
-                  {selectedHours.length > 0 && (
-                    <Button 
-                      className="w-full mt-4" 
-                      onClick={handleReservation}
-                    >
-                      Réserver {selectedHours.length} heure{selectedHours.length > 1 ? 's' : ''}
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <p className="text-muted-foreground">
-                  Sélectionnez une date pour voir les heures disponibles
-                </p>
-              )}
-            </div>
+    <Dialog open={isReservationDialogOpen} onOpenChange={handleDialogOpenChange}>
+      <DialogTrigger asChild>
+        <Button className="w-full mt-4">Réserver</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Réserver {terrainNom}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-4">
+            <ReservationCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+            />
+            <ReservationLegend />
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <ReservationConfirmation 
-        open={showConfirmation}
-        onOpenChange={setShowConfirmation}
-        selectedDate={selectedDate}
-        selectedHours={selectedHours}
-        totalPrice={calculateTotalPrice()}
-        onRequestReservation={handleRequestReservation}
-        onPayNow={handlePayNow}
-      />
-    </>
+          <div className="space-y-4">
+            <h3 className="font-medium">Heures disponibles</h3>
+            {selectedDate ? (
+              <>
+                <HourSelector
+                  hours={hours}
+                  selectedHours={selectedHours}
+                  isHourReserved={isHourReserved}
+                  isAdjacentToSelected={(hour) => isAdjacentToSelected(hour, selectedHours)}
+                  onHourClick={handleHourClick}
+                />
+                {selectedHours.length > 0 && (
+                  <div className="space-y-4 mt-4">
+                    <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                      <span className="font-medium">Prix total:</span>
+                      <span className="text-lg font-bold">{formatPrice(calculateTotalPrice())} FCFA</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button 
+                        variant="outline"
+                        onClick={handleReservation}
+                      >
+                        Demander réservation
+                      </Button>
+                      <Button 
+                        onClick={handlePayNow}
+                      >
+                        Réserver maintenant
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                Sélectionnez une date pour voir les heures disponibles
+              </p>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

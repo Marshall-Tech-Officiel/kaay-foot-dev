@@ -21,7 +21,6 @@ export function useReservation({
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedHours, setSelectedHours] = useState<number[]>([])
   const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const calculateTotalPrice = () => {
     let total = 0
@@ -102,7 +101,6 @@ export function useReservation({
       }
 
       toast.success("Demande de réservation envoyée")
-      setShowConfirmation(false)
       setIsReservationDialogOpen(false)
     } catch (error) {
       console.error("Erreur lors de la création de la réservation:", error)
@@ -112,7 +110,6 @@ export function useReservation({
 
   const handlePayNow = () => {
     console.log("Paiement immédiat")
-    setShowConfirmation(false)
     setIsReservationDialogOpen(false)
     toast.success("Redirection vers la page de paiement...")
   }
@@ -124,8 +121,6 @@ export function useReservation({
     setSelectedHours,
     isReservationDialogOpen,
     setIsReservationDialogOpen,
-    showConfirmation,
-    setShowConfirmation,
     calculateTotalPrice,
     handleRequestReservation,
     handlePayNow,
