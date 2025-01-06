@@ -113,6 +113,12 @@ export function ReservationDialog({
   }
 
   const handleRequestReservation = async () => {
+    // Double-check validation before proceeding
+    if (!selectedDate || selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner une date et au moins une heure")
+      return
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -129,6 +135,12 @@ export function ReservationDialog({
 
       if (!profile) {
         toast.error("Profil non trouvé")
+        return
+      }
+
+      // Ensure selectedHours is not empty before accessing first element
+      if (selectedHours.length === 0) {
+        toast.error("Erreur: Aucune heure sélectionnée")
         return
       }
 
