@@ -6,6 +6,11 @@ import { DataTable } from "@/components/ui/data-table"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { fr } from "date-fns/locale"
+import { Tables } from "@/integrations/supabase/types"
+
+type ReservationWithTerrain = Tables<"reservations"> & {
+  terrain: Pick<Tables<"terrains">, "nom" | "localisation">
+}
 
 const statusColors = {
   en_attente: "yellow",
@@ -52,7 +57,7 @@ export default function ReservisteReservations() {
         .eq("reserviste_id", profile.id)
         .order("date_reservation", { ascending: false })
 
-      return data || []
+      return (data || []) as ReservationWithTerrain[]
     },
     enabled: !!profile?.id,
   })
@@ -91,7 +96,7 @@ export default function ReservisteReservations() {
   const columns = [
     {
       header: "Terrain",
-      accessorKey: "terrain",
+      accessorKey: "terrain" as const,
       cell: (value: any) => (
         <div>
           <div className="font-medium">{value.nom}</div>
@@ -101,34 +106,34 @@ export default function ReservisteReservations() {
     },
     {
       header: "Date",
-      accessorKey: "date_reservation",
+      accessorKey: "date_reservation" as const,
       cell: (value: string) => format(new Date(value), "d MMMM yyyy", { locale: fr }),
     },
     {
       header: "Heure",
-      accessorKey: "heure_debut",
+      accessorKey: "heure_debut" as const,
       cell: (value: string) => format(new Date(`2000-01-01T${value}`), "HH:mm"),
     },
     {
       header: "Durée",
-      accessorKey: "nombre_heures",
+      accessorKey: "nombre_heures" as const,
       cell: (value: number) => `${value} heure${value > 1 ? "s" : ""}`,
     },
     {
       header: "Montant",
-      accessorKey: "montant_total",
+      accessorKey: "montant_total" as const,
       cell: (value: number) => `${value.toLocaleString()} FCFA`,
     },
     {
       header: "Statut",
-      accessorKey: "statut",
+      accessorKey: "statut" as const,
       cell: (value: keyof typeof statusColors) => (
         <Badge variant="outline" className={`bg-${statusColors[value]}-100 text-${statusColors[value]}-800 border-${statusColors[value]}-200`}>
           {value.replace("_", " ")}
         </Badge>
       ),
     },
-  ]
+  ] as const
 
   if (!reservations) return null
 
