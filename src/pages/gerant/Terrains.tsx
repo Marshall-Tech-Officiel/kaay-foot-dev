@@ -9,9 +9,28 @@ import { Loader2 } from "lucide-react"
 export default function GerantTerrains() {
   const { user } = useAuth()
 
-  const { data: terrains, isLoading } = useQuery({
-    queryKey: ["terrains-gerant"],
+  // Fetch the profile ID first
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ["profile"],
     queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    enabled: !!user?.id,
+  })
+
+  // Then use the profile ID to fetch assigned terrains
+  const { data: terrains, isLoading: isLoadingTerrains } = useQuery({
+    queryKey: ["terrains-gerant", profile?.id],
+    queryFn: async () => {
+      console.log("Fetching terrains for profile ID:", profile?.id) // Debug log
+      
       const { data: assignedTerrains, error } = await supabase
         .from("droits_gerants")
         .select(`
@@ -23,19 +42,24 @@ export default function GerantTerrains() {
             photos:photos_terrain(url)
           )
         `)
-        .eq("gerant_id", user?.id)
+        .eq("gerant_id", profile?.id)
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching terrains:", error) // Debug log
+        throw error
+      }
+
+      console.log("Assigned terrains:", assignedTerrains) // Debug log
 
       // Extract terrains from the assignments and remove null values
       return assignedTerrains
         .map((assignment) => assignment.terrain)
         .filter((terrain): terrain is NonNullable<typeof terrain> => terrain !== null)
     },
-    enabled: !!user?.id,
+    enabled: !!profile?.id,
   })
 
-  if (isLoading) {
+  if (isLoadingProfile || isLoadingTerrains) {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
