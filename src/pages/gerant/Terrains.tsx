@@ -9,54 +9,27 @@ import { Loader2 } from "lucide-react"
 export default function GerantTerrains() {
   const { user } = useAuth()
 
-  // Fetch the profile ID first
-  const { data: profile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ["profile"],
+  // Fetch terrains assigned to the gérant
+  const { data: terrains, isLoading } = useQuery({
+    queryKey: ["terrains-gerant", user?.id],
     queryFn: async () => {
-      console.log("Fetching profile for user ID:", user?.id)
-      const { data, error } = await supabase
+      console.log("Fetching terrains for user ID:", user?.id)
+      
+      // First get the profile
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
         .eq("user_id", user?.id)
         .single()
 
-      if (error) {
-        console.error("Error fetching profile:", error)
-        throw error
-      }
-      console.log("Profile data:", data)
-      return data
-    },
-    enabled: !!user?.id,
-  })
-
-  // Then use the profile ID to fetch assigned terrains
-  const { data: terrains, isLoading: isLoadingTerrains } = useQuery({
-    queryKey: ["terrains-gerant", profile?.id],
-    queryFn: async () => {
-      console.log("Fetching terrains for profile ID:", profile?.id)
-      
-      // First, get the terrain IDs from droits_gerants
-      const { data: droits, error: droitsError } = await supabase
-        .from("droits_gerants")
-        .select("terrain_id")
-        .eq("gerant_id", profile?.id)
-
-      if (droitsError) {
-        console.error("Error fetching droits:", droitsError)
-        throw droitsError
+      if (profileError) {
+        console.error("Error fetching profile:", profileError)
+        throw profileError
       }
 
-      console.log("Droits data:", droits)
+      console.log("Profile found:", profile)
 
-      if (!droits || droits.length === 0) {
-        console.log("No terrains assigned to this gérant")
-        return []
-      }
-
-      const terrainIds = droits.map(d => d.terrain_id)
-      console.log("Terrain IDs to fetch:", terrainIds)
-
+      // Then get the terrains using a single query with joins
       const { data: terrains, error: terrainsError } = await supabase
         .from("terrains")
         .select(`
@@ -66,20 +39,25 @@ export default function GerantTerrains() {
           photos:photos_terrain(url),
           profiles:profiles(nom, prenom)
         `)
-        .in("id", terrainIds)
+        .in("id", (
+          supabase
+            .from("droits_gerants")
+            .select("terrain_id")
+            .eq("gerant_id", profile.id)
+        ))
 
       if (terrainsError) {
         console.error("Error fetching terrains:", terrainsError)
         throw terrainsError
       }
 
-      console.log("Terrains data:", terrains)
+      console.log("Terrains found:", terrains)
       return terrains
     },
-    enabled: !!profile?.id,
+    enabled: !!user?.id,
   })
 
-  if (isLoadingProfile || isLoadingTerrains) {
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
