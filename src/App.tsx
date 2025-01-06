@@ -1,4 +1,4 @@
-import { RouterProvider, createBrowserRouter } from "react-router-dom"
+import { RouterProvider, createBrowserRouter, Outlet } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@/components/ui/sonner"
 import { PrivateRoute } from "@/components/auth/PrivateRoute"
@@ -55,7 +55,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/admin",
-    element: <PrivateRoute allowedRoles={["admin"]} />,
+    element: <PrivateRoute allowedRoles={["admin"]}><Outlet /></PrivateRoute>,
     children: [
       {
         path: "dashboard",
@@ -77,7 +77,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/proprietaire",
-    element: <PrivateRoute allowedRoles={["proprietaire"]} />,
+    element: <PrivateRoute allowedRoles={["proprietaire"]}><Outlet /></PrivateRoute>,
     children: [
       {
         path: "dashboard",
@@ -107,7 +107,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/gerant",
-    element: <PrivateRoute allowedRoles={["gerant"]} />,
+    element: <PrivateRoute allowedRoles={["gerant"]}><Outlet /></PrivateRoute>,
     children: [
       {
         path: "dashboard",
@@ -133,7 +133,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/reserviste",
-    element: <PrivateRoute allowedRoles={["reserviste"]} />,
+    element: <PrivateRoute allowedRoles={["reserviste"]}><Outlet /></PrivateRoute>,
     children: [
       {
         path: "accueil",
