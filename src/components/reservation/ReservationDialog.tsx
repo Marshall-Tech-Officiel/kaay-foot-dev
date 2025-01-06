@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { ReservationCalendar } from "./ReservationCalendar"
 import { HourSelector } from "./HourSelector"
+import { ReservationConfirmation } from "./ReservationConfirmation"
+import { ReservationLegend } from "./ReservationLegend"
 import { format } from "date-fns"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
@@ -86,7 +87,6 @@ export function ReservationDialog({
     const finNuit = parseInt(heureFinNuit.split(":")[0])
 
     selectedHours.forEach(hour => {
-      // Si l'heure est entre heureDebutNuit et heureFinNuit, on applique le tarif de nuit
       if (
         (hour >= debutNuit && hour <= 23) || 
         (hour >= 0 && hour < finNuit)
@@ -109,7 +109,6 @@ export function ReservationDialog({
   }
 
   const handleRequestReservation = () => {
-    // TODO: Implémenter la logique de demande de réservation
     console.log("Demande de réservation")
     setShowConfirmation(false)
     setIsReservationDialogOpen(false)
@@ -117,7 +116,6 @@ export function ReservationDialog({
   }
 
   const handlePayNow = () => {
-    // TODO: Implémenter la logique de paiement immédiat
     console.log("Paiement immédiat")
     setShowConfirmation(false)
     setIsReservationDialogOpen(false)
@@ -145,6 +143,7 @@ export function ReservationDialog({
               <h3 className="font-medium">Heures disponibles</h3>
               {selectedDate ? (
                 <>
+                  <ReservationLegend />
                   <HourSelector
                     hours={hours}
                     selectedHours={selectedHours}
@@ -171,34 +170,15 @@ export function ReservationDialog({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la réservation</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <p>
-                Vous avez sélectionné {selectedHours.length} heure{selectedHours.length > 1 ? 's' : ''} 
-                {selectedDate && ` pour le ${format(selectedDate, 'dd/MM/yyyy')}`}
-              </p>
-              <p>
-                Heures sélectionnées : {selectedHours.map(h => `${h.toString().padStart(2, "0")}:00`).join(", ")}
-              </p>
-              <p className="font-semibold">
-                Prix total : {calculateTotalPrice()} FCFA
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRequestReservation}>
-              Demander une réservation
-            </AlertDialogAction>
-            <AlertDialogAction onClick={handlePayNow}>
-              Payer maintenant
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ReservationConfirmation 
+        open={showConfirmation}
+        onOpenChange={setShowConfirmation}
+        selectedDate={selectedDate}
+        selectedHours={selectedHours}
+        totalPrice={calculateTotalPrice()}
+        onRequestReservation={handleRequestReservation}
+        onPayNow={handlePayNow}
+      />
     </>
   )
 }
