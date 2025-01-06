@@ -22,7 +22,7 @@ export default function Register() {
     setIsLoading(true)
 
     try {
-      // 1. Create the user in auth.users
+      // 1. Sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -34,23 +34,33 @@ export default function Register() {
         throw new Error("No user ID returned from signup")
       }
 
-      // 2. Create the profile in public.profiles
+      // 2. Wait for the session to be established
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) throw sessionError
+
+      if (!session) {
+        throw new Error("No session established after signup")
+      }
+
+      // 3. Create the profile using the established session
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert([
-          {
-            user_id: authData.user.id,
-            email,
-            nom,
-            prenom,
-            telephone,
-            role: 'reserviste'
-          }
-        ])
+        .insert({
+          user_id: authData.user.id,
+          email,
+          nom,
+          prenom,
+          telephone,
+          role: 'reserviste'
+        })
 
       if (profileError) {
         console.error("Profile creation error:", profileError)
-        // If profile creation fails, we should clean up the auth user
+        // Clean up by signing out if profile creation fails
         await supabase.auth.signOut()
         throw profileError
       }
