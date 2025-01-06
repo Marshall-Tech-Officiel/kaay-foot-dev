@@ -144,7 +144,7 @@ const router = createBrowserRouter([
         element: <TerrainDetails />,
       },
       {
-        path: "profile",
+        path: "profil",
         element: <ReservisteProfile />,
       },
       {
