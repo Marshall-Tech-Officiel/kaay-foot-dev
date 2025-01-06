@@ -3,10 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button"
 import { ReservationCalendar } from "./ReservationCalendar"
 import { HourSelector } from "./HourSelector"
-import { ConfirmationDialog } from "./ConfirmationDialog"
 import { format } from "date-fns"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
 
 interface ReservationDialogProps {
   terrainId: string
@@ -16,8 +16,6 @@ interface ReservationDialogProps {
 export function ReservationDialog({ terrainId, terrainNom }: ReservationDialogProps) {
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedHours, setSelectedHours] = useState<number[]>([])
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [lastSelectedHour, setLastSelectedHour] = useState<number | null>(null)
   const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
 
   const { data: reservations } = useQuery({
@@ -48,25 +46,13 @@ export function ReservationDialog({ terrainId, terrainNom }: ReservationDialogPr
   }
 
   const handleHourClick = (hour: number) => {
-    setLastSelectedHour(hour)
-    setShowConfirmDialog(true)
-  }
-
-  const handleAddMoreHours = () => {
-    if (lastSelectedHour !== null) {
-      setSelectedHours([...selectedHours, lastSelectedHour])
-      setShowConfirmDialog(false)
-      // Ne pas fermer le dialogue principal
+    if (selectedHours.includes(hour)) {
+      // Si l'heure est déjà sélectionnée, on la retire
+      setSelectedHours(selectedHours.filter(h => h !== hour))
+    } else {
+      // Sinon on l'ajoute
+      setSelectedHours([...selectedHours, hour].sort((a, b) => a - b))
     }
-  }
-
-  const handleFinishSelection = () => {
-    if (lastSelectedHour !== null) {
-      setSelectedHours([...selectedHours, lastSelectedHour])
-    }
-    setShowConfirmDialog(false)
-    setIsReservationDialogOpen(false)
-    console.log("Heures sélectionnées:", selectedHours)
   }
 
   const isAdjacentToSelected = (hour: number) => {
@@ -79,31 +65,38 @@ export function ReservationDialog({ terrainId, terrainNom }: ReservationDialogPr
     if (!open) {
       setSelectedDate(undefined)
       setSelectedHours([])
-      setLastSelectedHour(null)
-      setShowConfirmDialog(false)
     }
   }
 
+  const handleReservation = () => {
+    if (selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner au moins une heure")
+      return
+    }
+    // TODO: Implémenter la logique de réservation
+    console.log("Réservation pour les heures:", selectedHours)
+  }
+
   return (
-    <>
-      <Dialog open={isReservationDialogOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogTrigger asChild>
-          <Button className="w-full mt-4">Réserver</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Réserver {terrainNom}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <ReservationCalendar
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-              />
-            </div>
-            <div className="space-y-4">
-              <h3 className="font-medium">Heures disponibles</h3>
-              {selectedDate ? (
+    <Dialog open={isReservationDialogOpen} onOpenChange={handleDialogOpenChange}>
+      <DialogTrigger asChild>
+        <Button className="w-full mt-4">Réserver</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Réserver {terrainNom}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <ReservationCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+            />
+          </div>
+          <div className="space-y-4">
+            <h3 className="font-medium">Heures disponibles</h3>
+            {selectedDate ? (
+              <>
                 <HourSelector
                   hours={hours}
                   selectedHours={selectedHours}
@@ -111,22 +104,23 @@ export function ReservationDialog({ terrainId, terrainNom }: ReservationDialogPr
                   isAdjacentToSelected={isAdjacentToSelected}
                   onHourClick={handleHourClick}
                 />
-              ) : (
-                <p className="text-muted-foreground">
-                  Sélectionnez une date pour voir les heures disponibles
-                </p>
-              )}
-            </div>
+                {selectedHours.length > 0 && (
+                  <Button 
+                    className="w-full mt-4" 
+                    onClick={handleReservation}
+                  >
+                    Réserver {selectedHours.length} heure{selectedHours.length > 1 ? 's' : ''}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                Sélectionnez une date pour voir les heures disponibles
+              </p>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <ConfirmationDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onAddMore={handleAddMoreHours}
-        onFinish={handleFinishSelection}
-      />
-    </>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
