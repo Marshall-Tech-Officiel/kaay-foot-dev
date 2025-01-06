@@ -9,7 +9,6 @@ import { Loader2 } from "lucide-react"
 export default function GerantTerrains() {
   const { user } = useAuth()
 
-  // Fetch terrains assigned to the gérant
   const { data: terrains, isLoading } = useQuery({
     queryKey: ["terrains-gerant", user?.id],
     queryFn: async () => {
@@ -29,7 +28,25 @@ export default function GerantTerrains() {
 
       console.log("Profile found:", profile)
 
-      // Then get the terrains using a single query with joins
+      // Get the terrain IDs first
+      const { data: droits, error: droitsError } = await supabase
+        .from("droits_gerants")
+        .select("terrain_id")
+        .eq("gerant_id", profile.id)
+
+      if (droitsError) {
+        console.error("Error fetching droits:", droitsError)
+        throw droitsError
+      }
+
+      if (!droits?.length) {
+        console.log("No terrains assigned")
+        return []
+      }
+
+      const terrainIds = droits.map(d => d.terrain_id)
+
+      // Then fetch the terrains with these IDs
       const { data: terrains, error: terrainsError } = await supabase
         .from("terrains")
         .select(`
@@ -39,12 +56,7 @@ export default function GerantTerrains() {
           photos:photos_terrain(url),
           profiles:profiles(nom, prenom)
         `)
-        .in("id", (
-          supabase
-            .from("droits_gerants")
-            .select("terrain_id")
-            .eq("gerant_id", profile.id)
-        ))
+        .in("id", terrainIds)
 
       if (terrainsError) {
         console.error("Error fetching terrains:", terrainsError)
