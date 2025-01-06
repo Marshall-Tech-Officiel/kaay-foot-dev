@@ -20,6 +20,7 @@ export default function GerantTerrains() {
         .single()
 
       if (error) throw error
+      console.log("Profile data:", data) // Debug log
       return data
     },
     enabled: !!user?.id,
@@ -50,12 +51,16 @@ export default function GerantTerrains() {
         throw error
       }
 
-      console.log("Assigned terrains:", assignedTerrains) // Debug log
+      console.log("Raw assigned terrains data:", assignedTerrains) // Debug log
 
       // Extract terrains from the assignments and remove null values
-      return assignedTerrains
+      const filteredTerrains = assignedTerrains
         .map((assignment) => assignment.terrain)
         .filter((terrain): terrain is NonNullable<typeof terrain> => terrain !== null)
+
+      console.log("Filtered terrains:", filteredTerrains) // Debug log
+
+      return filteredTerrains
     },
     enabled: !!profile?.id,
   })
