@@ -155,7 +155,7 @@ export default function TerrainDetails() {
     {
       header: "Date",
       accessorKey: "date_reservation" as const,
-      cell: (value: string) => new Date(value).toLocaleDateString(),
+      cell: (value: any) => new Date(value).toLocaleDateString(),
     },
     {
       header: "Heure",
@@ -164,7 +164,7 @@ export default function TerrainDetails() {
     {
       header: "Durée",
       accessorKey: "nombre_heures" as const,
-      cell: (value: number) => `${value}h`,
+      cell: (value: any) => `${value}h`,
     },
     {
       header: "Réserviste",
@@ -179,7 +179,7 @@ export default function TerrainDetails() {
     {
       header: "Statut",
       accessorKey: "statut" as const,
-      cell: (value: string) => (
+      cell: (value: any) => (
         <Badge
           variant={
             value === "validee"
@@ -196,7 +196,7 @@ export default function TerrainDetails() {
     {
       header: "Paiement",
       accessorKey: "paiement" as const,
-      cell: (value: any[]) => (
+      cell: (value: any) => (
         <Badge
           variant={
             value?.[0]?.statut === "paye" ? "secondary" : "destructive"
@@ -209,14 +209,15 @@ export default function TerrainDetails() {
     {
       header: "Actions",
       accessorKey: "id" as const,
-      cell: (value: string, row: any) => (
-        row.statut === "en_attente" && (
+      cell: (info: any) => {
+        const statut = info.row.original.statut
+        return statut === "en_attente" ? (
           <div className="flex gap-2">
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => validateReservation.mutate(value)}
+              onClick={() => validateReservation.mutate(info.getValue())}
             >
               <CheckCircle className="h-4 w-4 text-green-500" />
             </Button>
@@ -224,13 +225,13 @@ export default function TerrainDetails() {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => refuseReservation.mutate(value)}
+              onClick={() => refuseReservation.mutate(info.getValue())}
             >
               <XCircle className="h-4 w-4 text-red-500" />
             </Button>
           </div>
-        )
-      ),
+        ) : null
+      },
     },
   ] as const
 
