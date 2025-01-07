@@ -31,6 +31,7 @@ export default function GerantReservations() {
   const { data: reservations, isLoading, error } = useQuery({
     queryKey: ["reservations-gerant"],
     queryFn: async () => {
+      // D'abord, obtenir l'ID du profil du gérant connecté
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -40,38 +41,21 @@ export default function GerantReservations() {
       if (profileError) throw profileError
       console.info("Found profile:", profile)
 
-      // Get terrains assigned to this gerant
-      const { data: assignedTerrains } = await supabase
+      // Obtenir les terrains assignés à ce gérant via droits_gerants
+      const { data: droitsGerants, error: droitsError } = await supabase
         .from("droits_gerants")
-        .select(`
-          terrain_id,
-          terrain:terrains(
-            id,
-            nom,
-            zone:zones(nom),
-            region:regions(nom),
-            photos:photos_terrain(url),
-            taille,
-            prix_jour,
-            prix_nuit,
-            description,
-            localisation,
-            latitude,
-            longitude,
-            heure_debut_nuit,
-            heure_fin_nuit
-          )
-        `)
+        .select("terrain_id")
         .eq("gerant_id", profile.id)
 
-      console.info("Assigned terrains:", assignedTerrains)
+      if (droitsError) throw droitsError
+      console.info("Found droits_gerants:", droitsGerants)
 
-      if (!assignedTerrains?.length) return []
+      if (!droitsGerants?.length) return []
 
-      const terrainIds = assignedTerrains.map(t => t.terrain_id)
+      const terrainIds = droitsGerants.map(d => d.terrain_id)
 
-      // Get reservations for these terrains
-      const { data, error: reservationsError } = await supabase
+      // Obtenir les réservations pour ces terrains
+      const { data: reservationsData, error: reservationsError } = await supabase
         .from("reservations")
         .select(`
           *,
@@ -83,8 +67,9 @@ export default function GerantReservations() {
         .order("date_reservation", { ascending: false })
 
       if (reservationsError) throw reservationsError
+      console.info("Found reservations:", reservationsData)
 
-      return data as Reservation[]
+      return reservationsData as Reservation[]
     },
     enabled: !!user?.id,
   })
