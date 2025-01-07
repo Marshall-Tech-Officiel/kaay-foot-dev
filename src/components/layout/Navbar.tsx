@@ -67,8 +67,8 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-center border-b">
           <img 
             src="/kaayfoot-logo.png" 
-            alt="Logo" 
-            className={`transition-all duration-300 ${
+            alt="Kaay-Foot Logo" 
+            className={`transition-all duration-300 object-contain ${
               isOpen ? 'h-12 w-auto' : 'h-8 w-auto'
             }`}
           />

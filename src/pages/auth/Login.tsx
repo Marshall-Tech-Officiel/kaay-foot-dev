@@ -69,13 +69,16 @@ export default function Login() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-center">
-            <img src="/kaayfoot-logo.png" alt="Kaay-Foot Logo" className="h-24 mx-auto mb-4" />
+            <img 
+              src="/kaayfoot-logo.png" 
+              alt="Kaay-Foot Logo" 
+              className="h-24 w-auto object-contain mx-auto mb-4" 
+            />
           </h1>
           <p className="text-gray-600">
             Gérez vos terrains de foot en toute simplicité
           </p>
         </div>
-
         <div className="bg-white p-8 rounded-lg shadow-lg space-y-6">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
