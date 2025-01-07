@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,21 +27,22 @@ export function ProfileInfoForm() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [initialValues, setInitialValues] = useState<ProfileFormValues>({
+    nom: "",
+    prenom: "",
+    email: "",
+    telephone: ""
+  })
 
   const form = useForm<ProfileFormValues>({
-    defaultValues: async () => {
-      if (!user) {
-        console.log("No user found")
-        return {
-          nom: "",
-          prenom: "",
-          email: "",
-          telephone: ""
-        }
-      }
-      
+    defaultValues: initialValues
+  })
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!user) return
+
       try {
-        console.log("Fetching user profile data for user:", user.id)
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
@@ -55,32 +56,30 @@ export function ProfileInfoForm() {
             title: "Erreur",
             description: "Impossible de charger vos informations",
           })
-          return {
-            nom: "",
-            prenom: "",
-            email: "",
-            telephone: ""
-          }
+          return
         }
 
-        console.log("Profile data fetched:", data)
-        return {
+        const values = {
           nom: data.nom || "",
           prenom: data.prenom || "",
           email: data.email || "",
           telephone: data.telephone || "",
         }
-      } catch (error) {
-        console.error("Error in defaultValues:", error)
-        return {
-          nom: "",
-          prenom: "",
-          email: "",
-          telephone: ""
-        }
+        
+        setInitialValues(values)
+        form.reset(values)
+      } catch (error: any) {
+        console.error("Error in fetchProfileData:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Une erreur est survenue lors du chargement de vos informations",
+        })
       }
-    },
-  })
+    }
+
+    fetchProfileData()
+  }, [user, form, toast])
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return
