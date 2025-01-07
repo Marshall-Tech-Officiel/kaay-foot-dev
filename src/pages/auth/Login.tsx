@@ -72,7 +72,7 @@ export default function Login() {
             <img 
               src="/kaayfoot-logo.png" 
               alt="Kaay-Foot Logo" 
-              className="h-24 w-auto object-contain mx-auto mb-4" 
+              className="h-24 w-24 object-contain mx-auto mb-4 rounded-full bg-white p-2" 
             />
           </h1>
           <p className="text-gray-600">

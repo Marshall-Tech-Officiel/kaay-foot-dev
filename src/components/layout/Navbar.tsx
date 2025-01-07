@@ -68,8 +68,8 @@ export function Navbar() {
           <img 
             src="/kaayfoot-logo.png" 
             alt="Kaay-Foot Logo" 
-            className={`transition-all duration-300 object-contain ${
-              isOpen ? 'h-12 w-auto' : 'h-8 w-auto'
+            className={`transition-all duration-300 object-contain rounded-full bg-white p-2 ${
+              isOpen ? 'h-12 w-12' : 'h-8 w-8'
             }`}
           />
         </div>
