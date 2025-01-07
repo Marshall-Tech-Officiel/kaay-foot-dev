@@ -6,6 +6,7 @@ import Register from "@/pages/auth/Register"
 import ForgotPassword from "@/pages/auth/ForgotPassword"
 import AdminDashboard from "@/pages/admin/Dashboard"
 import AdminTerrains from "@/pages/admin/Terrains"
+import AdminProprietaires from "@/pages/admin/Proprietaires"
 import ProprietaireDashboard from "@/pages/proprietaire/Dashboard"
 import GerantDashboard from "@/pages/gerant/Dashboard"
 import ReservisteAccueil from "@/pages/reserviste/Accueil"
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="terrains" element={<AdminTerrains />} />
+            <Route path="proprietaires" element={<AdminProprietaires />} />
             <Route path="profile" element={<Profile />} />
           </Route>
 
