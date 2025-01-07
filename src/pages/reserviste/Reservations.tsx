@@ -97,39 +97,45 @@ export default function ReservisteReservations() {
     {
       header: "Terrain",
       accessorKey: "terrain" as const,
-      cell: (value: any) => (
+      cell: (info: { getValue: () => { nom: string; localisation: string } }) => (
         <div>
-          <div className="font-medium">{value.nom}</div>
-          <div className="text-sm text-muted-foreground">{value.localisation}</div>
+          <div className="font-medium">{info.getValue().nom}</div>
+          <div className="text-sm text-muted-foreground">
+            {info.getValue().localisation}
+          </div>
         </div>
       ),
     },
     {
       header: "Date",
       accessorKey: "date_reservation" as const,
-      cell: (value: string) => format(new Date(value), "d MMMM yyyy", { locale: fr }),
+      cell: (info: { getValue: () => string }) => 
+        format(new Date(info.getValue()), "d MMMM yyyy", { locale: fr }),
     },
     {
       header: "Heure",
       accessorKey: "heure_debut" as const,
-      cell: (value: string) => format(new Date(`2000-01-01T${value}`), "HH:mm"),
+      cell: (info: { getValue: () => string }) => 
+        format(new Date(`2000-01-01T${info.getValue()}`), "HH:mm"),
     },
     {
       header: "Durée",
       accessorKey: "nombre_heures" as const,
-      cell: (value: number) => `${value} heure${value > 1 ? "s" : ""}`,
+      cell: (info: { getValue: () => number }) => 
+        `${info.getValue()} heure${info.getValue() > 1 ? "s" : ""}`,
     },
     {
       header: "Montant",
       accessorKey: "montant_total" as const,
-      cell: (value: number) => `${value.toLocaleString()} FCFA`,
+      cell: (info: { getValue: () => number }) => 
+        `${info.getValue().toLocaleString()} FCFA`,
     },
     {
       header: "Statut",
       accessorKey: "statut" as const,
-      cell: (value: keyof typeof statusColors) => (
-        <Badge variant="outline" className={`bg-${statusColors[value]}-100 text-${statusColors[value]}-800 border-${statusColors[value]}-200`}>
-          {value.replace("_", " ")}
+      cell: (info: { getValue: () => keyof typeof statusColors }) => (
+        <Badge variant="outline" className={`bg-${statusColors[info.getValue()]}-100 text-${statusColors[info.getValue()]}-800 border-${statusColors[info.getValue()]}-200`}>
+          {info.getValue().replace("_", " ")}
         </Badge>
       ),
     },

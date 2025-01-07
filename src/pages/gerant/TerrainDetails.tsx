@@ -62,21 +62,16 @@ export default function TerrainDetails() {
         .update({ statut: "validee" })
         .eq("id", reservationId)
 
-      if (error) throw error
+      if (error) {
+        console.error("Error validating reservation:", error)
+        throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservations-terrain", id] })
       toast({
         title: "Réservation validée",
         description: "La réservation a été validée avec succès.",
-      })
-    },
-    onError: (error) => {
-      console.error("Error validating reservation:", error)
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de valider la réservation. Veuillez réessayer.",
       })
     },
   })
@@ -88,21 +83,16 @@ export default function TerrainDetails() {
         .update({ statut: "refusee" })
         .eq("id", reservationId)
 
-      if (error) throw error
+      if (error) {
+        console.error("Error refusing reservation:", error)
+        throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservations-terrain", id] })
       toast({
         title: "Réservation refusée",
         description: "La réservation a été refusée.",
-      })
-    },
-    onError: (error) => {
-      console.error("Error refusing reservation:", error)
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de refuser la réservation. Veuillez réessayer.",
       })
     },
   })
