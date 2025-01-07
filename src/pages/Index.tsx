@@ -15,7 +15,6 @@ export default function Index() {
               alt="Kaay-Foot Logo" 
               className="h-24 w-auto object-contain mx-auto mb-4" 
               loading="eager"
-              priority="high"
             />
           </h1>
           <h2 className="text-3xl font-bold text-gray-800">
