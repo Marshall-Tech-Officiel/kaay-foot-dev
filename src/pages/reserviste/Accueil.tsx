@@ -12,18 +12,32 @@ export default function ReservisteAccueil() {
   const { data: terrains, isLoading } = useQuery({
     queryKey: ["terrains-public"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch terrains with their ratings
+      const { data: terrainsWithRatings, error } = await supabase
         .from("terrains")
         .select(`
           *,
           zone:zones(nom),
           region:regions(nom),
-          photos:photos_terrain(url)
+          photos:photos_terrain(url),
+          terrain_ratings(rating)
         `)
-        .order("created_at", { ascending: false })
 
       if (error) throw error
-      return data
+
+      // Calculate average rating for each terrain and sort
+      const processedTerrains = terrainsWithRatings.map(terrain => {
+        const ratings = terrain.terrain_ratings || []
+        const avgRating = ratings.length > 0
+          ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length
+          : 0
+        return {
+          ...terrain,
+          averageRating: avgRating
+        }
+      }).sort((a, b) => b.averageRating - a.averageRating)
+
+      return processedTerrains
     },
   })
 

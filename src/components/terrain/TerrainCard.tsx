@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock, User } from "lucide-react"
+import { MapPin, Clock, User, Star } from "lucide-react"
 import { Tables } from "@/integrations/supabase/types"
 import { Link } from "react-router-dom"
 
@@ -19,6 +19,10 @@ interface TerrainCardProps {
       nom: string
       prenom: string
     } | null
+    terrain_ratings?: {
+      rating: number
+    }[] | null
+    averageRating?: number
   }
   showProprietaire?: boolean
   linkPrefix?: string
@@ -31,6 +35,7 @@ export function TerrainCard({
 }: TerrainCardProps) {
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const proprietaire = terrain.profiles ? `${terrain.profiles.prenom} ${terrain.profiles.nom}` : "Non assigné"
+  const averageRating = terrain.averageRating || 0
 
   return (
     <Link to={`${linkPrefix}/${terrain.id}`} className="block">
@@ -64,6 +69,10 @@ export function TerrainCard({
                 {proprietaire}
               </div>
             )}
+            <div className="flex items-center gap-1">
+              <Star className="h-4 w-4" />
+              <span>{averageRating > 0 ? `${averageRating.toFixed(1)} / 5` : "Pas encore noté"}</span>
+            </div>
           </CardDescription>
         </CardHeader>
         <CardContent>
