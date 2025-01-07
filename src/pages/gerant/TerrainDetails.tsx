@@ -24,7 +24,7 @@ type Reservation = {
   heure_debut: string
   nombre_heures: number
   reserviste: { nom: string; prenom: string; telephone: string }
-  statut: string
+  statut: "en_attente" | "validee" | "refusee"
   paiement: Array<{ statut: string }>
 }
 
@@ -57,6 +57,7 @@ export default function TerrainDetails() {
 
   const validateReservation = useMutation({
     mutationFn: async (reservationId: string) => {
+      console.log("Validating reservation:", reservationId)
       const { error } = await supabase
         .from("reservations")
         .update({ statut: "validee" })
@@ -86,6 +87,7 @@ export default function TerrainDetails() {
 
   const refuseReservation = useMutation({
     mutationFn: async (reservationId: string) => {
+      console.log("Refusing reservation:", reservationId)
       const { error } = await supabase
         .from("reservations")
         .update({ statut: "refusee" })
