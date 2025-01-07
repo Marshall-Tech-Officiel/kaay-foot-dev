@@ -77,7 +77,11 @@ export default function ProprietaireTerrains() {
             {terrains?.map((terrain) => (
               <div key={terrain.id} className="relative group cursor-pointer">
                 <div onClick={() => navigate(`/proprietaire/terrains/${terrain.id}`)}>
-                  <TerrainCard terrain={terrain} showProprietaire={false} />
+                  <TerrainCard 
+                    terrain={terrain} 
+                    showProprietaire={false} 
+                    linkPrefix="/proprietaire/terrains"
+                  />
                 </div>
                 <Button
                   variant="secondary"
