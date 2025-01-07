@@ -55,6 +55,9 @@ export default function ProprietaireReservations() {
         },
         statut: res.statut as "en_attente" | "validee" | "refusee",
         paiement: res.paiement,
+        terrain: {
+          nom: res.terrain.nom
+        }
       }))
 
       return transformedData

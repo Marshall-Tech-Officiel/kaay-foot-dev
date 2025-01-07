@@ -11,6 +11,7 @@ export type Reservation = {
   reserviste: { nom: string; prenom: string; telephone: string }
   statut: "en_attente" | "validee" | "refusee"
   paiement: Array<{ statut: string }>
+  terrain: { nom: string }
 }
 
 export const getReservationColumns = (
