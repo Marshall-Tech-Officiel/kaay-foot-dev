@@ -15,19 +15,11 @@ export function HourSelector({
   isAdjacentToSelected,
   onHourClick,
 }: HourSelectorProps) {
-  const isPartOfTwoHourReservation = (hour: number): boolean => {
-    const prevHour = hour - 1
-    const nextHour = hour + 1
-    return (isHourReserved(hour) && isHourReserved(nextHour)) || 
-           (isHourReserved(hour) && isHourReserved(prevHour))
-  }
-
   return (
     <div className="grid grid-cols-4 gap-2">
       {hours.map((hour) => {
         const isSelected = selectedHours.includes(hour)
         const isReservedHour = isHourReserved(hour)
-        const isPartOfTwoHours = isPartOfTwoHourReservation(hour)
         const canBeSelected = !isReservedHour && (selectedHours.length === 0 || isAdjacentToSelected(hour))
 
         return (
@@ -40,7 +32,7 @@ export function HourSelector({
                 ? "destructive"
                 : "outline"
             }
-            className={`w-full ${isPartOfTwoHours ? "bg-[#ea384c]" : ""}`}
+            className={`w-full ${isReservedHour ? "bg-[#ea384c]" : ""}`}
             disabled={isReservedHour || (selectedHours.length > 0 && !isSelected && !isAdjacentToSelected(hour))}
             onClick={() => onHourClick(hour)}
           >

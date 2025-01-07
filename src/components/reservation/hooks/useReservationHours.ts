@@ -25,8 +25,9 @@ export function useReservationHours(terrainId: string, selectedDate: Date | unde
   const isHourReserved = (hour: number) => {
     if (!reservations) return false
     return reservations.some(reservation => {
-      const reservationHour = parseInt(reservation.heure_debut.split(":")[0])
-      return reservationHour === hour
+      const startHour = parseInt(reservation.heure_debut.split(":")[0])
+      const endHour = startHour + reservation.nombre_heures
+      return hour >= startHour && hour < endHour
     })
   }
 
