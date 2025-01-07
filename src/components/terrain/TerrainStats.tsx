@@ -23,7 +23,8 @@ export function TerrainStats({ terrainId }: TerrainStatsProps) {
           date_reservation,
           heure_debut,
           nombre_heures,
-          montant_total
+          montant_total,
+          statut
         `)
         .eq("terrain_id", terrainId)
         .gte("date_reservation", startOfMonth.toISOString())
@@ -46,12 +47,16 @@ export function TerrainStats({ terrainId }: TerrainStatsProps) {
             "Montant total": 0
           }
         }
+        // Count all reservations for the stats
         if (isNightReservation(res.heure_debut)) {
           acc[date]["Réservations nuit"]++
         } else {
           acc[date]["Réservations jour"]++
         }
-        acc[date]["Montant total"] += Number(res.montant_total)
+        // Only add the amount if the reservation is validated
+        if (res.statut === "validee") {
+          acc[date]["Montant total"] += Number(res.montant_total)
+        }
         return acc
       }, {} as Record<string, any>)
 
