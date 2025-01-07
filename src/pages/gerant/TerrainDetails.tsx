@@ -117,7 +117,8 @@ export default function TerrainDetails() {
         .select(`
           *,
           reserviste:profiles(nom, prenom, telephone),
-          paiement:paiements(statut)
+          paiement:paiements(statut),
+          terrain:terrains(nom)
         `)
         .eq("terrain_id", id)
         .in("statut", ["en_attente", "validee"])
@@ -128,7 +129,26 @@ export default function TerrainDetails() {
         throw error
       }
       console.log("Reservations data:", data)
-      return data as Reservation[]
+      
+      // Transform the data to match the Reservation type
+      const transformedData: Reservation[] = data.map(res => ({
+        id: res.id,
+        date_reservation: res.date_reservation,
+        heure_debut: res.heure_debut,
+        nombre_heures: res.nombre_heures,
+        reserviste: {
+          nom: res.reserviste.nom,
+          prenom: res.reserviste.prenom,
+          telephone: res.reserviste.telephone,
+        },
+        statut: res.statut as "en_attente" | "validee" | "refusee",
+        paiement: res.paiement,
+        terrain: {
+          nom: res.terrain.nom
+        }
+      }))
+
+      return transformedData
     },
     enabled: !!id,
   })
