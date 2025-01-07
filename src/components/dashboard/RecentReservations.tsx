@@ -18,6 +18,9 @@ interface RecentReservationsProps {
   onRefuse: (id: string) => void
 }
 
+// Define valid status types
+type ReservationStatus = 'en_attente' | 'validee' | 'refusee';
+
 export function RecentReservations({ 
   reservations,
   onValidate,
@@ -29,7 +32,7 @@ export function RecentReservations({
       const { error } = await supabase
         .from('reservations')
         .update({ 
-          statut: 'validee',
+          statut: 'validee' as ReservationStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -53,7 +56,7 @@ export function RecentReservations({
       const { error } = await supabase
         .from('reservations')
         .update({ 
-          statut: 'refusee',
+          statut: 'refusee' as ReservationStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
