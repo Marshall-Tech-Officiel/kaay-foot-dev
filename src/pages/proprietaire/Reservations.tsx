@@ -6,10 +6,9 @@ import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
 import { DataTable } from "@/components/ui/data-table"
-import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { ReservationFilters } from "@/components/dashboard/ReservationFilters"
-import { getReservationColumns } from "@/components/gerant/ReservationColumns"
+import { getReservationColumns, type Reservation } from "@/components/gerant/ReservationColumns"
 
 export default function ProprietaireReservations() {
   const { user } = useAuth()
@@ -43,7 +42,22 @@ export default function ProprietaireReservations() {
       if (reservationsError) throw reservationsError
       console.info("Found reservations:", reservationsData)
 
-      return reservationsData
+      // Transform the data to match the Reservation type
+      const transformedData: Reservation[] = reservationsData.map((res: any) => ({
+        id: res.id,
+        date_reservation: res.date_reservation,
+        heure_debut: res.heure_debut,
+        nombre_heures: res.nombre_heures,
+        reserviste: {
+          nom: res.reserviste.nom,
+          prenom: res.reserviste.prenom,
+          telephone: res.reserviste.telephone,
+        },
+        statut: res.statut as "en_attente" | "validee" | "refusee",
+        paiement: res.paiement,
+      }))
+
+      return transformedData
     },
     enabled: !!user?.id,
   })
