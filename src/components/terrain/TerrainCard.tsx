@@ -27,7 +27,7 @@ interface TerrainCardProps {
 export function TerrainCard({ 
   terrain, 
   showProprietaire = false,
-  linkPrefix = "/reserviste/terrains"
+  linkPrefix = "/reserviste/terrain"
 }: TerrainCardProps) {
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const proprietaire = terrain.profiles ? `${terrain.profiles.prenom} ${terrain.profiles.nom}` : "Non assigné"
