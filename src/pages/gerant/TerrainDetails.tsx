@@ -1,15 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
-import { useAuth } from "@/hooks/useAuth"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { DataTable } from "@/components/ui/data-table"
-import { Badge } from "@/components/ui/badge"
 import { useParams } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { CheckCircle, XCircle } from "lucide-react"
+import { type Reservation, getReservationColumns } from "@/components/gerant/ReservationColumns"
 
 type Terrain = {
   id: string
@@ -18,19 +15,8 @@ type Terrain = {
   region: { nom: string }
 }
 
-type Reservation = {
-  id: string
-  date_reservation: string
-  heure_debut: string
-  nombre_heures: number
-  reserviste: { nom: string; prenom: string; telephone: string }
-  statut: "en_attente" | "validee" | "refusee"
-  paiement: Array<{ statut: string }>
-}
-
 export default function TerrainDetails() {
   const { id } = useParams()
-  const { user } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -159,94 +145,10 @@ export default function TerrainDetails() {
     )
   }
 
-  const columns = [
-    {
-      header: "Date",
-      accessorKey: "date_reservation" as const,
-      cell: (info: { getValue: () => string }) => 
-        new Date(info.getValue()).toLocaleDateString(),
-    },
-    {
-      header: "Heure",
-      accessorKey: "heure_debut" as const,
-    },
-    {
-      header: "Durée",
-      accessorKey: "nombre_heures" as const,
-      cell: (info: { getValue: () => number }) => `${info.getValue()}h`,
-    },
-    {
-      header: "Réserviste",
-      accessorKey: "reserviste" as const,
-      cell: (info: { getValue: () => { nom: string; prenom: string } }) => {
-        const value = info.getValue()
-        return `${value.prenom} ${value.nom}`
-      },
-    },
-    {
-      header: "Téléphone",
-      accessorKey: "reserviste" as const,
-      cell: (info: { getValue: () => { telephone: string } }) => 
-        info.getValue().telephone,
-    },
-    {
-      header: "Statut",
-      accessorKey: "statut" as const,
-      cell: (info: { getValue: () => string }) => (
-        <Badge
-          variant={
-            info.getValue() === "validee"
-              ? "secondary"
-              : info.getValue() === "en_attente"
-              ? "outline"
-              : "destructive"
-          }
-        >
-          {info.getValue()}
-        </Badge>
-      ),
-    },
-    {
-      header: "Paiement",
-      accessorKey: "paiement" as const,
-      cell: (info: { getValue: () => Array<{ statut: string }> }) => (
-        <Badge
-          variant={
-            info.getValue()?.[0]?.statut === "paye" ? "secondary" : "destructive"
-          }
-        >
-          {info.getValue()?.[0]?.statut || "non payé"}
-        </Badge>
-      ),
-    },
-    {
-      header: "Actions",
-      accessorKey: "id" as const,
-      cell: (info: { getValue: () => string; row: { original: Reservation } }) => {
-        const statut = info.row.original.statut
-        return statut === "en_attente" ? (
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => validateReservation.mutate(info.getValue())}
-            >
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => refuseReservation.mutate(info.getValue())}
-            >
-              <XCircle className="h-4 w-4 text-red-500" />
-            </Button>
-          </div>
-        ) : null
-      },
-    },
-  ] as const
+  const columns = getReservationColumns(
+    (id) => validateReservation.mutate(id),
+    (id) => refuseReservation.mutate(id)
+  )
 
   return (
     <MainLayout>
