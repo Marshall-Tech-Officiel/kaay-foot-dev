@@ -16,8 +16,8 @@ import { useState } from "react"
 type Terrain = {
   id: string
   nom: string
-  zone: { nom: string }
-  region: { nom: string }
+  zone: { nom: string } | null
+  region: { nom: string } | null
 }
 
 export default function TerrainDetails() {
@@ -27,7 +27,7 @@ export default function TerrainDetails() {
   const [showTodayOnly, setShowTodayOnly] = useState(false)
   const today = format(new Date(), 'yyyy-MM-dd')
 
-  const { data: terrain } = useQuery({
+  const { data: terrain, isLoading: isLoadingTerrain } = useQuery({
     queryKey: ["terrain", id],
     queryFn: async () => {
       console.log("Fetching terrain details for ID:", id)
@@ -39,9 +39,13 @@ export default function TerrainDetails() {
           region:regions(nom)
         `)
         .eq("id", id)
-        .single()
+        .maybeSingle()
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching terrain:", error)
+        throw error
+      }
+      
       console.log("Terrain data:", data)
       return data as Terrain
     },
@@ -137,14 +141,14 @@ export default function TerrainDetails() {
         heure_debut: res.heure_debut,
         nombre_heures: res.nombre_heures,
         reserviste: {
-          nom: res.reserviste.nom,
-          prenom: res.reserviste.prenom,
-          telephone: res.reserviste.telephone,
+          nom: res.reserviste?.nom || "",
+          prenom: res.reserviste?.prenom || "",
+          telephone: res.reserviste?.telephone || "",
         },
         statut: res.statut as "en_attente" | "validee" | "refusee",
-        paiement: res.paiement,
+        paiement: res.paiement?.[0] || null,
         terrain: {
-          nom: res.terrain.nom
+          nom: res.terrain?.nom || ""
         }
       }))
 
@@ -162,11 +166,26 @@ export default function TerrainDetails() {
     })
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingTerrain) {
     return (
       <MainLayout>
         <div className="flex h-[200px] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    )
+  }
+
+  if (!terrain) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto py-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Terrain non trouvé</h1>
+            <p className="text-muted-foreground mt-2">
+              Le terrain que vous recherchez n'existe pas ou vous n'avez pas les droits pour y accéder.
+            </p>
+          </div>
         </div>
       </MainLayout>
     )
@@ -186,9 +205,9 @@ export default function TerrainDetails() {
       <div className="container mx-auto py-6">
         <div className="mb-6">
           <Breadcrumbs />
-          <h1 className="text-2xl font-bold mt-2">{terrain?.nom}</h1>
+          <h1 className="text-2xl font-bold mt-2">{terrain.nom}</h1>
           <p className="text-muted-foreground">
-            {terrain?.zone?.nom}, {terrain?.region?.nom}
+            {terrain.zone?.nom}, {terrain.region?.nom}
           </p>
         </div>
           
