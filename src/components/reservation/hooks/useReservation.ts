@@ -59,7 +59,6 @@ export function useReservation({
     }
 
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -67,7 +66,6 @@ export function useReservation({
         return
       }
 
-      // Get the user's profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -89,7 +87,7 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_attente"
+        statut: "en_attente" // This value must match the check constraint in the database
       }
 
       console.log("Reservation data:", reservationData)
