@@ -31,7 +31,6 @@ export default function GerantReservations() {
   const { data: reservations, isLoading, error } = useQuery({
     queryKey: ["reservations-gerant"],
     queryFn: async () => {
-      // D'abord, obtenir l'ID du profil du gérant connecté
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -41,7 +40,6 @@ export default function GerantReservations() {
       if (profileError) throw profileError
       console.info("Found profile:", profile)
 
-      // Obtenir les terrains assignés à ce gérant via droits_gerants
       const { data: droitsGerants, error: droitsError } = await supabase
         .from("droits_gerants")
         .select("terrain_id")
@@ -54,7 +52,6 @@ export default function GerantReservations() {
 
       const terrainIds = droitsGerants.map(d => d.terrain_id)
 
-      // Obtenir les réservations pour ces terrains
       const { data: reservationsData, error: reservationsError } = await supabase
         .from("reservations")
         .select(`

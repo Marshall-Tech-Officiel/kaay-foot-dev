@@ -7,10 +7,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { type ColumnDef } from "@tanstack/react-table"
+import {
+  type ColumnDef,
+  type HeaderContext,
+  flexRender
+} from "@tanstack/react-table"
 
 interface DataTableProps<TData> {
-  columns: ColumnDef<TData>[]
+  columns: ColumnDef<TData, any>[]
   data: TData[]
 }
 
@@ -25,8 +29,12 @@ export function DataTable<TData>({
           <TableRow>
             {columns.map((column) => (
               <TableHead key={String(column.id)}>
-                {typeof column.header === 'function' 
-                  ? column.header({}) 
+                {typeof column.header === "function"
+                  ? flexRender(column.header, {
+                      column,
+                      header: column.header,
+                      table: { options: {} },
+                    } as HeaderContext<TData, unknown>)
                   : column.header}
               </TableHead>
             ))}
@@ -38,12 +46,18 @@ export function DataTable<TData>({
               {columns.map((column) => (
                 <TableCell key={String(column.id)}>
                   {column.cell
-                    ? column.cell({
+                    ? flexRender(column.cell, {
                         getValue: () => {
-                          const accessorKey = column.accessorKey as string
-                          return accessorKey ? row[accessorKey as keyof TData] : undefined
+                          if (typeof column.accessorFn === "function") {
+                            return column.accessorFn(row, rowIndex)
+                          }
+                          return column.accessorKey
+                            ? row[column.accessorKey as keyof TData]
+                            : undefined
                         },
-                        row: { original: row }
+                        row: { original: row },
+                        column,
+                        table: { options: {} },
                       })
                     : column.accessorKey
                       ? String(row[column.accessorKey as keyof TData])
