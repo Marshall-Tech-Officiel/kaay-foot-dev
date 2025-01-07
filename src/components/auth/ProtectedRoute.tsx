@@ -6,13 +6,18 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { user, profile } = useAuth()
+  const { user, role, isLoading } = useAuth()
+
+  // Wait for the auth state to be loaded
+  if (isLoading) {
+    return null // or a loading spinner
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />
   }
 
-  if (!profile || !allowedRoles.includes(profile.role)) {
+  if (!role || !allowedRoles.includes(role)) {
     return <Navigate to="/403" replace />
   }
 
