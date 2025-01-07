@@ -87,14 +87,14 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_attente" // This is the only valid value for new reservations
+        statut: "en_attente" as const // Explicitly type as "en_attente"
       }
 
       console.log("Reservation data:", reservationData)
 
       const { error: reservationError } = await supabase
         .from("reservations")
-        .insert(reservationData)
+        .insert([reservationData])
 
       if (reservationError) {
         console.error("Reservation error:", reservationError)
