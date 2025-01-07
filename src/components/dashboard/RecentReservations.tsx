@@ -11,6 +11,8 @@ import {
 import { CheckCircle, XCircle } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
+import { format } from "date-fns"
+import { fr } from "date-fns/locale"
 
 interface RecentReservationsProps {
   reservations: any[]
@@ -26,6 +28,13 @@ export function RecentReservations({
   onValidate,
   onRefuse
 }: RecentReservationsProps) {
+  const today = format(new Date(), 'yyyy-MM-dd')
+  
+  // Filter reservations for today
+  const todayReservations = reservations.filter(
+    reservation => reservation.date_reservation === today
+  )
+
   const handleValidate = async (id: string) => {
     try {
       console.log("Validating reservation:", id)
@@ -75,70 +84,87 @@ export function RecentReservations({
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date/Heure</TableHead>
-            <TableHead>Terrain</TableHead>
-            <TableHead>Réserviste</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {reservations?.map((reservation) => (
-            <TableRow key={reservation.id}>
-              <TableCell>
-                {new Date(reservation.date_reservation).toLocaleDateString()}
-                <br />
-                <span className="text-sm text-muted-foreground">
-                  {reservation.heure_debut}
-                </span>
-              </TableCell>
-              <TableCell>{reservation.terrain?.nom}</TableCell>
-              <TableCell>
-                {reservation.reserviste?.prenom} {reservation.reserviste?.nom}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    reservation.statut === "validee"
-                      ? "secondary"
-                      : reservation.statut === "en_attente"
-                      ? "outline"
-                      : "destructive"
-                  }
-                >
-                  {reservation.statut}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={reservation.statut !== "en_attente"}
-                    onClick={() => handleValidate(reservation.id)}
-                  >
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={reservation.statut !== "en_attente"}
-                    onClick={() => handleRefuse(reservation.id)}
-                  >
-                    <XCircle className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </TableCell>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Réservations du jour</h3>
+        <Badge variant="outline">
+          {format(new Date(), 'dd MMMM yyyy', { locale: fr })}
+        </Badge>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Heure</TableHead>
+              <TableHead>Terrain</TableHead>
+              <TableHead>Réserviste</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {todayReservations.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  Aucune réservation pour aujourd'hui
+                </TableCell>
+              </TableRow>
+            ) : (
+              todayReservations.map((reservation) => (
+                <TableRow key={reservation.id}>
+                  <TableCell>
+                    {reservation.heure_debut}
+                    <br />
+                    <span className="text-sm text-muted-foreground">
+                      {reservation.nombre_heures}h
+                    </span>
+                  </TableCell>
+                  <TableCell>{reservation.terrain?.nom}</TableCell>
+                  <TableCell>
+                    {reservation.reserviste?.prenom} {reservation.reserviste?.nom}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        reservation.statut === "validee"
+                          ? "secondary"
+                          : reservation.statut === "en_attente"
+                          ? "outline"
+                          : "destructive"
+                      }
+                    >
+                      {reservation.statut}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={reservation.statut !== "en_attente"}
+                        onClick={() => handleValidate(reservation.id)}
+                      >
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={reservation.statut !== "en_attente"}
+                        onClick={() => handleRefuse(reservation.id)}
+                      >
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
