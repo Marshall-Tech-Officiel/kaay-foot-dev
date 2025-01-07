@@ -13,7 +13,7 @@ export default function Index() {
             <img 
               src="/kaayfoot-logo.png" 
               alt="Kaay-Foot Logo" 
-              className="h-24 w-auto object-contain mx-auto mb-4" 
+              className="h-24 w-24 object-cover rounded-full mx-auto mb-4" 
               loading="eager"
             />
           </h1>
