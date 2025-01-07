@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Star } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
@@ -25,7 +25,7 @@ export function TerrainRating({ terrainId }: TerrainRatingProps) {
         .select("rating")
         .eq("terrain_id", terrainId)
         .eq("user_id", user.id)
-        .single()
+        .maybeSingle()
       return data?.rating || 0
     },
     enabled: !!user,
@@ -54,7 +54,7 @@ export function TerrainRating({ terrainId }: TerrainRatingProps) {
         .select()
         .eq("terrain_id", terrainId)
         .eq("user_id", user.id)
-        .single()
+        .maybeSingle()
 
       if (existingRating) {
         const { error } = await supabase
