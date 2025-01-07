@@ -146,7 +146,7 @@ export default function TerrainDetails() {
           telephone: res.reserviste?.telephone || "",
         },
         statut: res.statut as "en_attente" | "validee" | "refusee",
-        paiement: res.paiement || [], // Ensure paiement is always an array
+        paiement: Array.isArray(res.paiement) ? res.paiement : [], // Ensure paiement is always an array
         terrain: {
           nom: res.terrain?.nom || ""
         }
