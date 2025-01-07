@@ -9,6 +9,7 @@ import { DataTable } from "@/components/ui/data-table"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { ReservationFilters } from "@/components/dashboard/ReservationFilters"
+import { type ColumnDef } from "@tanstack/react-table"
 
 type Reservation = {
   id: string
@@ -97,72 +98,72 @@ export default function GerantReservations() {
     return matchesSearch && matchesStatus && matchesDate
   })
 
-  const columns = [
+  const columns: ColumnDef<Reservation>[] = [
     {
       header: "Terrain",
-      accessorKey: "terrain" as const,
-      cell: (info: { getValue: () => { nom: string } }) => info.getValue().nom,
+      accessorKey: "terrain",
+      cell: (info) => info.getValue<{ nom: string }>().nom,
     },
     {
       header: "Date",
-      accessorKey: "date_reservation" as const,
-      cell: (info: { getValue: () => string }) => 
-        new Date(info.getValue()).toLocaleDateString(),
+      accessorKey: "date_reservation",
+      cell: (info) => new Date(info.getValue<string>()).toLocaleDateString(),
     },
     {
       header: "Heure",
-      accessorKey: "heure_debut" as const,
+      accessorKey: "heure_debut",
     },
     {
       header: "Durée",
-      accessorKey: "nombre_heures" as const,
-      cell: (info: { getValue: () => number }) => `${info.getValue()}h`,
+      accessorKey: "nombre_heures",
+      cell: (info) => `${info.getValue<number>()}h`,
     },
     {
       header: "Réserviste",
-      accessorKey: "reserviste" as const,
-      cell: (info: { getValue: () => { nom: string; prenom: string } }) => {
-        const value = info.getValue()
+      accessorKey: "reserviste",
+      cell: (info) => {
+        const value = info.getValue<{ nom: string; prenom: string }>()
         return `${value.prenom} ${value.nom}`
       },
     },
     {
       header: "Téléphone",
-      accessorKey: "reserviste" as const,
-      cell: (info: { getValue: () => { telephone: string } }) => 
-        info.getValue().telephone,
+      accessorKey: "reserviste",
+      cell: (info) => info.getValue<{ telephone: string }>().telephone,
     },
     {
       header: "Statut",
-      accessorKey: "statut" as const,
-      cell: (info: { getValue: () => string }) => (
+      accessorKey: "statut",
+      cell: (info) => (
         <Badge
           variant={
-            info.getValue() === "validee"
+            info.getValue<string>() === "validee"
               ? "secondary"
-              : info.getValue() === "en_attente"
+              : info.getValue<string>() === "en_attente"
               ? "outline"
               : "destructive"
           }
         >
-          {info.getValue()}
+          {info.getValue<string>()}
         </Badge>
       ),
     },
     {
       header: "Paiement",
-      accessorKey: "paiement" as const,
-      cell: (info: { getValue: () => Array<{ statut: string }> }) => (
+      accessorKey: "paiement",
+      cell: (info) => (
         <Badge
           variant={
-            info.getValue()?.[0]?.statut === "paye" ? "secondary" : "destructive"
+            info.getValue<Array<{ statut: string }>>()[0]?.statut === "paye"
+              ? "secondary"
+              : "destructive"
           }
         >
-          {info.getValue()?.[0]?.statut || "non payé"}
+          {info.getValue<Array<{ statut: string }>>()[0]?.statut || "non payé"}
         </Badge>
       ),
     },
-  ] as const
+  ]
 
   return (
     <MainLayout>

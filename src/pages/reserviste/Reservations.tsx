@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { fr } from "date-fns/locale"
 import { Tables } from "@/integrations/supabase/types"
 import { MainLayout } from "@/components/layout/MainLayout"
+import { type ColumnDef } from "@tanstack/react-table"
 
 type ReservationWithTerrain = Tables<"reservations"> & {
   terrain: Pick<Tables<"terrains">, "nom" | "localisation">
@@ -39,7 +40,6 @@ export default function ReservisteReservations() {
     },
   })
 
-  // Then fetch reservations using the profile id
   const { data: reservations } = useQuery({
     queryKey: ["reservations", profile?.id],
     queryFn: async () => {
@@ -62,7 +62,6 @@ export default function ReservisteReservations() {
     enabled: !!profile?.id,
   })
 
-  // Subscribe to reservation status changes
   useEffect(() => {
     if (!profile?.id) return
 
@@ -93,53 +92,49 @@ export default function ReservisteReservations() {
     }
   }, [profile?.id, toast])
 
-  const columns = [
+  const columns: ColumnDef<ReservationWithTerrain>[] = [
     {
       header: "Terrain",
-      accessorKey: "terrain" as const,
-      cell: (info: { getValue: () => { nom: string; localisation: string } }) => (
+      accessorKey: "terrain",
+      cell: (info) => (
         <div>
-          <div className="font-medium">{info.getValue().nom}</div>
+          <div className="font-medium">{info.getValue<{ nom: string; localisation: string }>().nom}</div>
           <div className="text-sm text-muted-foreground">
-            {info.getValue().localisation}
+            {info.getValue<{ nom: string; localisation: string }>().localisation}
           </div>
         </div>
       ),
     },
     {
       header: "Date",
-      accessorKey: "date_reservation" as const,
-      cell: (info: { getValue: () => string }) => 
-        format(new Date(info.getValue()), "d MMMM yyyy", { locale: fr }),
+      accessorKey: "date_reservation",
+      cell: (info) => format(new Date(info.getValue<string>()), "d MMMM yyyy", { locale: fr }),
     },
     {
       header: "Heure",
-      accessorKey: "heure_debut" as const,
-      cell: (info: { getValue: () => string }) => 
-        format(new Date(`2000-01-01T${info.getValue()}`), "HH:mm"),
+      accessorKey: "heure_debut",
+      cell: (info) => format(new Date(`2000-01-01T${info.getValue<string>()}`), "HH:mm"),
     },
     {
       header: "Durée",
-      accessorKey: "nombre_heures" as const,
-      cell: (info: { getValue: () => number }) => 
-        `${info.getValue()} heure${info.getValue() > 1 ? "s" : ""}`,
+      accessorKey: "nombre_heures",
+      cell: (info) => `${info.getValue<number>()} heure${info.getValue<number>() > 1 ? "s" : ""}`,
     },
     {
       header: "Montant",
-      accessorKey: "montant_total" as const,
-      cell: (info: { getValue: () => number }) => 
-        `${info.getValue().toLocaleString()} FCFA`,
+      accessorKey: "montant_total",
+      cell: (info) => `${info.getValue<number>().toLocaleString()} FCFA`,
     },
     {
       header: "Statut",
-      accessorKey: "statut" as const,
-      cell: (info: { getValue: () => keyof typeof statusColors }) => (
-        <Badge variant="outline" className={`bg-${statusColors[info.getValue()]}-100 text-${statusColors[info.getValue()]}-800 border-${statusColors[info.getValue()]}-200`}>
-          {info.getValue().replace("_", " ")}
+      accessorKey: "statut",
+      cell: (info) => (
+        <Badge variant="outline" className={`bg-${statusColors[info.getValue<keyof typeof statusColors>()]}-100 text-${statusColors[info.getValue<keyof typeof statusColors>()]}-800 border-${statusColors[info.getValue<keyof typeof statusColors>()]}-200`}>
+          {info.getValue<string>().replace("_", " ")}
         </Badge>
       ),
     },
-  ] as const
+  ]
 
   if (!reservations) return null
 
