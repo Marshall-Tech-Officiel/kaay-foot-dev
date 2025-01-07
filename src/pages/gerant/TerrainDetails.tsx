@@ -155,7 +155,8 @@ export default function TerrainDetails() {
     {
       header: "Date",
       accessorKey: "date_reservation" as const,
-      cell: (value: any) => new Date(value).toLocaleDateString(),
+      cell: (info: { getValue: () => string }) => 
+        new Date(info.getValue()).toLocaleDateString(),
     },
     {
       header: "Heure",
@@ -164,52 +165,56 @@ export default function TerrainDetails() {
     {
       header: "Durée",
       accessorKey: "nombre_heures" as const,
-      cell: (value: any) => `${value}h`,
+      cell: (info: { getValue: () => number }) => `${info.getValue()}h`,
     },
     {
       header: "Réserviste",
       accessorKey: "reserviste" as const,
-      cell: (value: any) => `${value.prenom} ${value.nom}`,
+      cell: (info: { getValue: () => { nom: string; prenom: string } }) => {
+        const value = info.getValue()
+        return `${value.prenom} ${value.nom}`
+      },
     },
     {
       header: "Téléphone",
       accessorKey: "reserviste" as const,
-      cell: (value: any) => value.telephone,
+      cell: (info: { getValue: () => { telephone: string } }) => 
+        info.getValue().telephone,
     },
     {
       header: "Statut",
       accessorKey: "statut" as const,
-      cell: (value: any) => (
+      cell: (info: { getValue: () => string }) => (
         <Badge
           variant={
-            value === "validee"
+            info.getValue() === "validee"
               ? "secondary"
-              : value === "en_attente"
+              : info.getValue() === "en_attente"
               ? "outline"
               : "destructive"
           }
         >
-          {value}
+          {info.getValue()}
         </Badge>
       ),
     },
     {
       header: "Paiement",
       accessorKey: "paiement" as const,
-      cell: (value: any) => (
+      cell: (info: { getValue: () => Array<{ statut: string }> }) => (
         <Badge
           variant={
-            value?.[0]?.statut === "paye" ? "secondary" : "destructive"
+            info.getValue()?.[0]?.statut === "paye" ? "secondary" : "destructive"
           }
         >
-          {value?.[0]?.statut || "non payé"}
+          {info.getValue()?.[0]?.statut || "non payé"}
         </Badge>
       ),
     },
     {
       header: "Actions",
       accessorKey: "id" as const,
-      cell: (info: any) => {
+      cell: (info: { getValue: () => string; row: { original: Reservation } }) => {
         const statut = info.row.original.statut
         return statut === "en_attente" ? (
           <div className="flex gap-2">

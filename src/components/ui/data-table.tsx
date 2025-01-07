@@ -12,7 +12,7 @@ interface DataTableProps<TData> {
   columns: ReadonlyArray<{
     header: string
     accessorKey: keyof TData
-    cell?: (value: any) => React.ReactNode
+    cell?: (info: { getValue: () => any; row: { original: TData } }) => React.ReactNode
   }>
   data: TData[]
 }
@@ -39,7 +39,10 @@ export function DataTable<TData>({
               {columns.map((column) => (
                 <TableCell key={String(column.accessorKey)}>
                   {column.cell
-                    ? column.cell(row[column.accessorKey])
+                    ? column.cell({
+                        getValue: () => row[column.accessorKey],
+                        row: { original: row }
+                      })
                     : String(row[column.accessorKey])}
                 </TableCell>
               ))}
