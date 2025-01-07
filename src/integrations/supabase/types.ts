@@ -240,6 +240,38 @@ export type Database = {
           },
         ]
       }
+      terrain_ratings: {
+        Row: {
+          created_at: string | null
+          id: string
+          rating: number | null
+          terrain_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          rating?: number | null
+          terrain_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          rating?: number | null
+          terrain_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terrain_ratings_terrain_id_fkey"
+            columns: ["terrain_id"]
+            isOneToOne: false
+            referencedRelation: "terrains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terrains: {
         Row: {
           created_at: string | null

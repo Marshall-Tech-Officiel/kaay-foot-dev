@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 import { Loader2, MapPin, Clock } from "lucide-react"
 import { TerrainCarousel } from "@/components/terrain/TerrainCarousel"
+import { TerrainRating } from "@/components/terrain/TerrainRating"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
@@ -75,6 +76,7 @@ export default function TerrainDetails() {
                   <MapPin className="h-4 w-4" />
                   {location}
                 </div>
+                <TerrainRating terrainId={terrain.id} />
               </CardDescription>
             </CardHeader>
             <CardContent>
