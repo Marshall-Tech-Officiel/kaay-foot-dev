@@ -34,6 +34,7 @@ export default function TerrainDetails() {
   const { data: terrain } = useQuery({
     queryKey: ["terrain", id],
     queryFn: async () => {
+      console.log("Fetching terrain details for ID:", id)
       const { data, error } = await supabase
         .from("terrains")
         .select(`
@@ -45,6 +46,7 @@ export default function TerrainDetails() {
         .single()
 
       if (error) throw error
+      console.log("Terrain data:", data)
       return data as Terrain
     },
     enabled: !!id,
@@ -53,11 +55,11 @@ export default function TerrainDetails() {
   const { data: reservations, isLoading, error } = useQuery({
     queryKey: ["reservations-terrain", id],
     queryFn: async () => {
+      console.log("Fetching reservations for terrain ID:", id)
       const { data, error } = await supabase
         .from("reservations")
         .select(`
           *,
-          terrain:terrains(nom),
           reserviste:profiles(nom, prenom, telephone),
           paiement:paiements(statut)
         `)
@@ -65,7 +67,11 @@ export default function TerrainDetails() {
         .in("statut", ["en_attente", "validee"])
         .order("date_reservation", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching reservations:", error)
+        throw error
+      }
+      console.log("Reservations data:", data)
       return data as Reservation[]
     },
     enabled: !!id,
