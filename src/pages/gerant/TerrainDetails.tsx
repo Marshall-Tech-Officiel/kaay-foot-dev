@@ -62,6 +62,7 @@ export default function TerrainDetails() {
           paiement:paiements(statut)
         `)
         .eq("terrain_id", id)
+        .in("statut", ["en_attente", "validee"])
         .order("date_reservation", { ascending: false })
 
       if (error) throw error
@@ -158,7 +159,7 @@ export default function TerrainDetails() {
         </div>
           
         <div className="mt-8">
-          <h2 className="mb-6 text-xl font-semibold">Réservations</h2>
+          <h2 className="mb-6 text-xl font-semibold">Réservations actives</h2>
           <DataTable
             columns={columns}
             data={reservations || []}

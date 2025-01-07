@@ -21,14 +21,19 @@ interface TerrainCardProps {
     } | null
   }
   showProprietaire?: boolean
+  linkPrefix?: string
 }
 
-export function TerrainCard({ terrain, showProprietaire = false }: TerrainCardProps) {
+export function TerrainCard({ 
+  terrain, 
+  showProprietaire = false,
+  linkPrefix = "/reserviste/terrains"
+}: TerrainCardProps) {
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const proprietaire = terrain.profiles ? `${terrain.profiles.prenom} ${terrain.profiles.nom}` : "Non assigné"
 
   return (
-    <Link to={`/reserviste/terrains/${terrain.id}`} className="block">
+    <Link to={`${linkPrefix}/${terrain.id}`} className="block">
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <div className="aspect-video relative overflow-hidden bg-muted">
           {terrain.photos?.[0]?.url ? (

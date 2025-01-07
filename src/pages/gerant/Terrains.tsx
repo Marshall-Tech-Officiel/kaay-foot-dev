@@ -101,6 +101,7 @@ export default function GerantTerrains() {
               <TerrainCard 
                 key={terrain.id} 
                 terrain={terrain}
+                linkPrefix="/gerant/terrains"
               />
             ))}
           </div>
