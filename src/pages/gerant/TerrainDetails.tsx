@@ -4,14 +4,9 @@ import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
-import { DataTable } from "@/components/ui/data-table"
 import { useParams } from "react-router-dom"
-import { type Reservation, getReservationColumns } from "@/components/gerant/ReservationColumns"
-import { format } from "date-fns"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { type Reservation } from "@/components/gerant/ReservationColumns"
+import { TerrainReservationsTable } from "@/components/gerant/TerrainReservationsTable"
 
 type Terrain = {
   id: string
@@ -24,8 +19,6 @@ export default function TerrainDetails() {
   const { id } = useParams()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const [showTodayOnly, setShowTodayOnly] = useState(false)
-  const today = format(new Date(), 'yyyy-MM-dd')
 
   const { data: terrain, isLoading: isLoadingTerrain } = useQuery({
     queryKey: ["terrain", id],
@@ -146,7 +139,7 @@ export default function TerrainDetails() {
           telephone: res.reserviste?.telephone || "",
         },
         statut: res.statut as "en_attente" | "validee" | "refusee",
-        paiement: Array.isArray(res.paiement) ? res.paiement : [], // Ensure paiement is always an array
+        paiement: Array.isArray(res.paiement) ? res.paiement : [],
         terrain: {
           nom: res.terrain?.nom || ""
         }
@@ -191,15 +184,6 @@ export default function TerrainDetails() {
     )
   }
 
-  const columns = getReservationColumns(
-    (id) => validateReservation.mutate(id),
-    (id) => refuseReservation.mutate(id)
-  )
-
-  const filteredReservations = showTodayOnly
-    ? reservations?.filter(r => r.date_reservation === today) || []
-    : reservations || []
-
   return (
     <MainLayout>
       <div className="container mx-auto py-6">
@@ -211,28 +195,11 @@ export default function TerrainDetails() {
           </p>
         </div>
           
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Réservations actives</h2>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="show-today"
-                checked={showTodayOnly}
-                onCheckedChange={setShowTodayOnly}
-              />
-              <Label htmlFor="show-today">Afficher uniquement aujourd'hui</Label>
-              {showTodayOnly && (
-                <Badge variant="outline" className="ml-2">
-                  {format(new Date(), 'dd/MM/yyyy')}
-                </Badge>
-              )}
-            </div>
-          </div>
-          <DataTable
-            columns={columns}
-            data={filteredReservations}
-          />
-        </div>
+        <TerrainReservationsTable
+          reservations={reservations || []}
+          onValidate={(id) => validateReservation.mutate(id)}
+          onRefuse={(id) => refuseReservation.mutate(id)}
+        />
       </div>
     </MainLayout>
   )
