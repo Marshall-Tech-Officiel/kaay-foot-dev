@@ -74,6 +74,14 @@ export default function TerrainDetails() {
         description: "La réservation a été validée avec succès.",
       })
     },
+    onError: (error) => {
+      console.error("Mutation error:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de valider la réservation. Veuillez réessayer.",
+      })
+    }
   })
 
   const refuseReservation = useMutation({
@@ -95,6 +103,14 @@ export default function TerrainDetails() {
         description: "La réservation a été refusée.",
       })
     },
+    onError: (error) => {
+      console.error("Mutation error:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de refuser la réservation. Veuillez réessayer.",
+      })
+    }
   })
 
   const { data: reservations, isLoading, error } = useQuery({
