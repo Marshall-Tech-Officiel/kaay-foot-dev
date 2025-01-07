@@ -25,12 +25,19 @@ export function RecentReservations({
 }: RecentReservationsProps) {
   const handleValidate = async (id: string) => {
     try {
+      console.log("Validating reservation:", id)
       const { error } = await supabase
         .from('reservations')
-        .update({ statut: 'validee' })
+        .update({ 
+          statut: 'validee',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        console.error("Validation error:", error)
+        throw error
+      }
       
       toast.success("Réservation validée avec succès")
       onValidate(id)
@@ -42,12 +49,19 @@ export function RecentReservations({
 
   const handleRefuse = async (id: string) => {
     try {
+      console.log("Refusing reservation:", id)
       const { error } = await supabase
         .from('reservations')
-        .update({ statut: 'refusee' })
+        .update({ 
+          statut: 'refusee',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        console.error("Refusal error:", error)
+        throw error
+      }
       
       toast.success("Réservation refusée")
       onRefuse(id)
