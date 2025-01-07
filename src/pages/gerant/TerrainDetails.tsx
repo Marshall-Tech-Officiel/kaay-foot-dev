@@ -1,13 +1,15 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 import { useAuth } from "@/hooks/useAuth"
 import { Loader2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { DataTable } from "@/components/ui/data-table"
 import { Badge } from "@/components/ui/badge"
 import { useParams } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { CheckCircle, XCircle } from "lucide-react"
 
 type Terrain = {
   id: string
@@ -30,6 +32,7 @@ export default function TerrainDetails() {
   const { id } = useParams()
   const { user } = useAuth()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   const { data: terrain } = useQuery({
     queryKey: ["terrain", id],
@@ -50,6 +53,58 @@ export default function TerrainDetails() {
       return data as Terrain
     },
     enabled: !!id,
+  })
+
+  const validateReservation = useMutation({
+    mutationFn: async (reservationId: string) => {
+      const { error } = await supabase
+        .from("reservations")
+        .update({ statut: "validee" })
+        .eq("id", reservationId)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations-terrain", id] })
+      toast({
+        title: "Réservation validée",
+        description: "La réservation a été validée avec succès.",
+      })
+    },
+    onError: (error) => {
+      console.error("Error validating reservation:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de valider la réservation. Veuillez réessayer.",
+      })
+    },
+  })
+
+  const refuseReservation = useMutation({
+    mutationFn: async (reservationId: string) => {
+      const { error } = await supabase
+        .from("reservations")
+        .update({ statut: "refusee" })
+        .eq("id", reservationId)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations-terrain", id] })
+      toast({
+        title: "Réservation refusée",
+        description: "La réservation a été refusée.",
+      })
+    },
+    onError: (error) => {
+      console.error("Error refusing reservation:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de refuser la réservation. Veuillez réessayer.",
+      })
+    },
   })
 
   const { data: reservations, isLoading, error } = useQuery({
@@ -149,6 +204,32 @@ export default function TerrainDetails() {
         >
           {value?.[0]?.statut || "non payé"}
         </Badge>
+      ),
+    },
+    {
+      header: "Actions",
+      accessorKey: "id" as const,
+      cell: (value: string, row: any) => (
+        row.statut === "en_attente" && (
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => validateReservation.mutate(value)}
+            >
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => refuseReservation.mutate(value)}
+            >
+              <XCircle className="h-4 w-4 text-red-500" />
+            </Button>
+          </div>
+        )
       ),
     },
   ] as const
