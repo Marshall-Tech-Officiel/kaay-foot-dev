@@ -7,13 +7,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { type ColumnDef } from "@tanstack/react-table"
 
 interface DataTableProps<TData> {
-  columns: ReadonlyArray<{
-    header: string
-    accessorKey: keyof TData
-    cell?: (info: { getValue: () => any; row: { original: TData } }) => React.ReactNode
-  }>
+  columns: ColumnDef<TData>[]
   data: TData[]
 }
 
@@ -27,23 +24,30 @@ export function DataTable<TData>({
         <TableHeader>
           <TableRow>
             {columns.map((column) => (
-              <TableHead key={String(column.accessorKey)}>
-                {column.header}
+              <TableHead key={String(column.id)}>
+                {typeof column.header === 'function' 
+                  ? column.header({}) 
+                  : column.header}
               </TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row, i) => (
-            <TableRow key={i}>
+          {data.map((row, rowIndex) => (
+            <TableRow key={rowIndex}>
               {columns.map((column) => (
-                <TableCell key={String(column.accessorKey)}>
+                <TableCell key={String(column.id)}>
                   {column.cell
                     ? column.cell({
-                        getValue: () => row[column.accessorKey],
+                        getValue: () => {
+                          const accessorKey = column.accessorKey as string
+                          return accessorKey ? row[accessorKey as keyof TData] : undefined
+                        },
                         row: { original: row }
                       })
-                    : String(row[column.accessorKey])}
+                    : column.accessorKey
+                      ? String(row[column.accessorKey as keyof TData])
+                      : null}
                 </TableCell>
               ))}
             </TableRow>
