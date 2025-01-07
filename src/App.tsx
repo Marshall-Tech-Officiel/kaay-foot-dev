@@ -11,6 +11,7 @@ import AdminProprietaires from "@/pages/admin/Proprietaires"
 import AdminProfil from "@/pages/admin/Profil"
 import ProprietaireDashboard from "@/pages/proprietaire/Dashboard"
 import ProprietaireTerrains from "@/pages/proprietaire/Terrains"
+import ProprietaireTerrainDetails from "@/pages/proprietaire/TerrainDetails"
 import ProprietaireGerants from "@/pages/proprietaire/Gerants"
 import ProprietaireReservations from "@/pages/proprietaire/Reservations"
 import ProprietaireProfil from "@/pages/proprietaire/Profil"
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/proprietaire/*" element={<ProtectedRoute allowedRoles={["proprietaire"]} />}>
             <Route path="dashboard" element={<ProprietaireDashboard />} />
             <Route path="terrains" element={<ProprietaireTerrains />} />
+            <Route path="terrains/:id" element={<ProprietaireTerrainDetails />} />
             <Route path="gerants" element={<ProprietaireGerants />} />
             <Route path="reservations" element={<ProprietaireReservations />} />
             <Route path="profil" element={<ProprietaireProfil />} />
@@ -82,7 +84,7 @@ export default function App() {
             <Route path="terrain/:id" element={<TerrainDetails />} />
           </Route>
 
-          {/* Catch all route - redirect to login */}
+          {/* Catch all route - redirect to 404 */}
           <Route path="*" element={<Error404 />} />
         </Routes>
         <Toaster />
