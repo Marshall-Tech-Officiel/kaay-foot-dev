@@ -25,6 +25,9 @@ export function useReservationHours(terrainId: string, selectedDate: Date | unde
   const isHourReserved = (hour: number) => {
     if (!reservations) return false
     return reservations.some(reservation => {
+      // Only consider validated reservations as blocking the time slot
+      if (reservation.statut !== "validee") return false
+      
       const startHour = parseInt(reservation.heure_debut.split(":")[0])
       const endHour = startHour + reservation.nombre_heures
       return hour >= startHour && hour < endHour
