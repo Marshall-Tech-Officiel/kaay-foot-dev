@@ -71,8 +71,7 @@ export function AppSidebar() {
     <Sidebar className="h-full bg-[#2F7A3B]">
       <SidebarHeader className="p-4">
         <div className="flex flex-col items-center">
-          <h1 className="text-2xl font-bold text-white">Mini-Foot</h1>
-          <div className="h-1 w-16 bg-red-500 mt-1" />
+          <img src="/kaayfoot-logo.png" alt="Kaay-Foot Logo" className="h-16 w-auto" />
         </div>
       </SidebarHeader>
       

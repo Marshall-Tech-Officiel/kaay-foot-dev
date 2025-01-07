@@ -66,7 +66,7 @@ export function Navbar() {
       <div className="flex h-full flex-col">
         <div className="flex h-16 items-center justify-center border-b">
           <img 
-            src="/logo.png" 
+            src="/kaayfoot-logo.png" 
             alt="Logo" 
             className={`transition-all duration-300 ${
               isOpen ? 'h-12 w-auto' : 'h-8 w-auto'

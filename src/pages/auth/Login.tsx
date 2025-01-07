@@ -68,9 +68,8 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#E0F2E9] to-[#CDE9E0] p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-green-800">
-            Mini-Foot
-            <div className="h-1 w-24 bg-red-500 mx-auto mt-1" />
+          <h1 className="text-center">
+            <img src="/kaayfoot-logo.png" alt="Kaay-Foot Logo" className="h-24 mx-auto mb-4" />
           </h1>
           <p className="text-gray-600">
             Gérez vos terrains de foot en toute simplicité

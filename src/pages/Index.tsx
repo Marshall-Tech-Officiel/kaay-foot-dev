@@ -30,7 +30,9 @@ const Index = () => {
     <div className="flex flex-col gap-8 max-w-7xl mx-auto">
       {/* Hero Section */}
       <div className="flex flex-col items-center justify-center min-h-[40vh] text-center px-4">
-        <h1 className="text-4xl font-bold mb-2">Mini-Foot</h1>
+        <h1 className="text-4xl font-bold mb-2">
+          <img src="/kaayfoot-logo.png" alt="Kaay-Foot Logo" className="h-24 mx-auto mb-4" />
+        </h1>
         <div className="h-1 w-24 bg-primary mb-4" />
         <p className="text-xl text-muted-foreground mb-8">
           Réservez votre terrain de foot en quelques clics
