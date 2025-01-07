@@ -87,7 +87,7 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_attente" // This value must match the check constraint in the database
+        statut: "en_attente" // This is the only valid value for new reservations
       }
 
       console.log("Reservation data:", reservationData)
@@ -103,6 +103,8 @@ export function useReservation({
 
       toast.success("Demande de réservation envoyée")
       setIsReservationDialogOpen(false)
+      setSelectedDate(undefined)
+      setSelectedHours([])
     } catch (error) {
       console.error("Erreur lors de la création de la réservation:", error)
       toast.error("Erreur lors de la création de la réservation")
