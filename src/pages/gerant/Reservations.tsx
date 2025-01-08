@@ -3,13 +3,14 @@ import { MainLayout } from "@/components/layout/MainLayout"
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs"
 import { useAuth } from "@/hooks/useAuth"
 import { Loader2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { DataTable } from "@/components/ui/data-table"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { ReservationFilters } from "@/components/dashboard/ReservationFilters"
 import { type ColumnDef } from "@tanstack/react-table"
+import { ReservationActions } from "@/components/gerant/ReservationActions"
 
 type Reservation = {
   id: string
@@ -29,7 +30,7 @@ export default function GerantReservations() {
   const [statusFilter, setStatusFilter] = useState("tous")
   const [dateFilter, setDateFilter] = useState("")
 
-  const { data: reservations, isLoading, error } = useQuery({
+  const { data: reservations, isLoading, error, refetch } = useQuery({
     queryKey: ["reservations-gerant"],
     queryFn: async () => {
       const { data: profile, error: profileError } = await supabase
@@ -71,6 +72,60 @@ export default function GerantReservations() {
     },
     enabled: !!user?.id,
   })
+
+  const handleValidate = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("reservations")
+        .update({ 
+          statut: "validee",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id)
+
+      if (error) throw error
+      
+      toast({
+        title: "Réservation validée",
+        description: "La réservation a été validée avec succès.",
+      })
+      refetch()
+    } catch (error) {
+      console.error("Error validating reservation:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la validation de la réservation.",
+      })
+    }
+  }
+
+  const handleRefuse = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("reservations")
+        .update({ 
+          statut: "refusee",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id)
+
+      if (error) throw error
+      
+      toast({
+        title: "Réservation refusée",
+        description: "La réservation a été refusée.",
+      })
+      refetch()
+    } catch (error) {
+      console.error("Error refusing reservation:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors du refus de la réservation.",
+      })
+    }
+  }
 
   if (error) {
     console.error("Query error:", error)
@@ -161,6 +216,17 @@ export default function GerantReservations() {
         >
           {info.getValue<Array<{ statut: string }>>()[0]?.statut || "non payé"}
         </Badge>
+      ),
+    },
+    {
+      header: "Actions",
+      accessorKey: "id",
+      cell: (info) => (
+        <ReservationActions
+          status={info.row.original.statut}
+          onValidate={() => handleValidate(info.getValue<string>())}
+          onRefuse={() => handleRefuse(info.getValue<string>())}
+        />
       ),
     },
   ]
