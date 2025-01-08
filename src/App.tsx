@@ -17,7 +17,6 @@ import ProprietaireReservations from "@/pages/proprietaire/Reservations"
 import ProprietaireProfil from "@/pages/proprietaire/Profil"
 import GerantDashboard from "@/pages/gerant/Dashboard"
 import GerantTerrains from "@/pages/gerant/Terrains"
-import GerantTerrainDetails from "@/pages/gerant/TerrainDetails"
 import GerantReservations from "@/pages/gerant/Reservations"
 import GerantProfil from "@/pages/gerant/Profile"
 import ReservisteAccueil from "@/pages/reserviste/Accueil"
@@ -73,7 +72,7 @@ export default function App() {
           <Route path="/gerant/*" element={<ProtectedRoute allowedRoles={["gerant"]} />}>
             <Route path="dashboard" element={<GerantDashboard />} />
             <Route path="terrains" element={<GerantTerrains />} />
-            <Route path="terrains/:id" element={<GerantTerrainDetails />} />
+            <Route path="terrains/:id" element={<TerrainDetails />} />
             <Route path="reservations" element={<GerantReservations />} />
             <Route path="profil" element={<GerantProfil />} />
           </Route>
