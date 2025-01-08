@@ -1,10 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 
-interface ReservationStatusBadgeProps {
-  status: string
-}
-
-export function ReservationStatusBadge({ status }: ReservationStatusBadgeProps) {
+export function ReservationStatusBadge({ status }: { status: string }) {
   return (
     <Badge
       variant={
