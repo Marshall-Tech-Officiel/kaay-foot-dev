@@ -34,6 +34,18 @@ export function useReservationHours(terrainId: string, selectedDate: Date | unde
     })
   }
 
+  const isHourPassed = (hour: number, date: Date) => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+    // Si la date sélectionnée est aujourd'hui, vérifier si l'heure est passée
+    if (selectedDay.getTime() === today.getTime()) {
+      return hour <= now.getHours()
+    }
+    return false
+  }
+
   const isAdjacentToSelected = (hour: number, selectedHours: number[]) => {
     if (selectedHours.length === 0) return true
     return selectedHours.some(selectedHour => Math.abs(selectedHour - hour) === 1)
@@ -42,6 +54,7 @@ export function useReservationHours(terrainId: string, selectedDate: Date | unde
   return {
     hours,
     isHourReserved,
+    isHourPassed,
     isAdjacentToSelected,
   }
 }

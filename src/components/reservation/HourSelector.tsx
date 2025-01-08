@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button"
 interface HourSelectorProps {
   hours: number[]
   selectedHours: number[]
+  selectedDate: Date
   isHourReserved: (hour: number) => boolean
+  isHourPassed: (hour: number, date: Date) => boolean
   isAdjacentToSelected: (hour: number) => boolean
   onHourClick: (hour: number) => void
 }
@@ -11,7 +13,9 @@ interface HourSelectorProps {
 export function HourSelector({
   hours,
   selectedHours,
+  selectedDate,
   isHourReserved,
+  isHourPassed,
   isAdjacentToSelected,
   onHourClick,
 }: HourSelectorProps) {
@@ -20,7 +24,8 @@ export function HourSelector({
       {hours.map((hour) => {
         const isSelected = selectedHours.includes(hour)
         const isReservedHour = isHourReserved(hour)
-        const canBeSelected = !isReservedHour && (selectedHours.length === 0 || isAdjacentToSelected(hour))
+        const isPastHour = isHourPassed(hour, selectedDate)
+        const canBeSelected = !isReservedHour && !isPastHour && (selectedHours.length === 0 || isAdjacentToSelected(hour))
 
         return (
           <Button
@@ -28,12 +33,12 @@ export function HourSelector({
             variant={
               isSelected
                 ? "default"
-                : isReservedHour
+                : isReservedHour || isPastHour
                 ? "destructive"
                 : "outline"
             }
-            className={`w-full ${isReservedHour ? "bg-[#ea384c]" : ""}`}
-            disabled={isReservedHour || (selectedHours.length > 0 && !isSelected && !isAdjacentToSelected(hour))}
+            className={`w-full ${isReservedHour || isPastHour ? "bg-[#ea384c]" : ""}`}
+            disabled={isReservedHour || isPastHour || (selectedHours.length > 0 && !isSelected && !isAdjacentToSelected(hour))}
             onClick={() => onHourClick(hour)}
           >
             {hour.toString().padStart(2, "0")}:00

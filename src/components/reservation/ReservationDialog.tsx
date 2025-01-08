@@ -43,7 +43,7 @@ export function ReservationDialog({
     heureFinNuit,
   })
 
-  const { hours, isHourReserved, isAdjacentToSelected } = useReservationHours(terrainId, selectedDate)
+  const { hours, isHourReserved, isHourPassed, isAdjacentToSelected } = useReservationHours(terrainId, selectedDate)
 
   const handleHourClick = (hour: number) => {
     if (selectedHours.includes(hour)) {
@@ -97,7 +97,9 @@ export function ReservationDialog({
                 <HourSelector
                   hours={hours}
                   selectedHours={selectedHours}
+                  selectedDate={selectedDate}
                   isHourReserved={isHourReserved}
+                  isHourPassed={isHourPassed}
                   isAdjacentToSelected={(hour) => isAdjacentToSelected(hour, selectedHours)}
                   onHourClick={handleHourClick}
                 />
