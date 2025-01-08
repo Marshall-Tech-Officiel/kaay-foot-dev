@@ -30,9 +30,11 @@ export function RecentReservations({
 }: RecentReservationsProps) {
   const today = format(new Date(), 'yyyy-MM-dd')
   
-  // Filter reservations for today
-  const todayReservations = reservations.filter(
-    reservation => reservation.date_reservation === today
+  // Filter reservations for today AND status is 'validee'
+  const todayValidatedReservations = reservations.filter(
+    reservation => 
+      reservation.date_reservation === today && 
+      reservation.statut === 'validee'
   )
 
   const handleValidate = async (id: string) => {
@@ -86,7 +88,7 @@ export function RecentReservations({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Réservations du jour</h3>
+        <h3 className="text-lg font-medium">Réservations validées du jour</h3>
         <Badge variant="outline">
           {format(new Date(), 'dd MMMM yyyy', { locale: fr })}
         </Badge>
@@ -104,14 +106,14 @@ export function RecentReservations({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {todayReservations.length === 0 ? (
+            {todayValidatedReservations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  Aucune réservation pour aujourd'hui
+                  Aucune réservation validée pour aujourd'hui
                 </TableCell>
               </TableRow>
             ) : (
-              todayReservations.map((reservation) => (
+              todayValidatedReservations.map((reservation) => (
                 <TableRow key={reservation.id}>
                   <TableCell>
                     {reservation.heure_debut}
