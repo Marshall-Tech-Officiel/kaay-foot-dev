@@ -121,8 +121,8 @@ export default function TerrainDetails() {
           terrain:terrains(nom)
         `)
         .eq("terrain_id", id)
-        .in("statut", ["en_attente", "validee"])
-        .order("date_reservation", { ascending: false })
+        .gte("date_reservation", today) // Ajout du filtre pour ne pas afficher les dates passées
+        .order("date_reservation", { ascending: true })
 
       if (error) {
         console.error("Error fetching reservations:", error)
