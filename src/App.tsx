@@ -72,6 +72,7 @@ export default function App() {
           <Route path="/gerant/*" element={<ProtectedRoute allowedRoles={["gerant"]} />}>
             <Route path="dashboard" element={<GerantDashboard />} />
             <Route path="terrains" element={<GerantTerrains />} />
+            <Route path="terrains/:id" element={<TerrainDetails />} />
             <Route path="reservations" element={<GerantReservations />} />
             <Route path="profil" element={<GerantProfil />} />
           </Route>
