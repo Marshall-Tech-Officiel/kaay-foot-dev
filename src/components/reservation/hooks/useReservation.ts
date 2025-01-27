@@ -87,7 +87,7 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_attente" as const // Explicitly type as "en_attente"
+        statut: "en_attente" as const
       }
 
       console.log("Reservation data:", reservationData)
@@ -111,10 +111,52 @@ export function useReservation({
     }
   }
 
-  const handlePayNow = () => {
-    console.log("Paiement immédiat")
-    setIsReservationDialogOpen(false)
-    toast.success("Redirection vers la page de paiement...")
+  const handlePayNow = async () => {
+    if (!selectedDate || selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner une date et au moins une heure")
+      return
+    }
+
+    try {
+      const { data: terrain } = await supabase
+        .from("terrains")
+        .select("nom")
+        .eq("id", terrainId)
+        .single()
+
+      if (!terrain) {
+        toast.error("Erreur lors de la récupération des informations du terrain")
+        return
+      }
+
+      const formattedDate = format(selectedDate, "dd/MM/yyyy")
+      const formattedHours = selectedHours
+        .map(h => `${h.toString().padStart(2, "0")}:00`)
+        .join(", ")
+
+      const response = await supabase.functions.invoke("create-payment", {
+        body: {
+          amount: calculateTotalPrice(),
+          ref_command: terrainId,
+          terrain_name: terrain.nom,
+          reservation_date: formattedDate,
+          reservation_hours: formattedHours
+        }
+      })
+
+      if (response.error) {
+        throw new Error(response.error.message)
+      }
+
+      if (response.data.success === 1 && response.data.redirect_url) {
+        window.location.href = response.data.redirect_url
+      } else {
+        throw new Error("Erreur lors de l'initialisation du paiement")
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'initialisation du paiement:", error)
+      toast.error("Erreur lors de l'initialisation du paiement")
+    }
   }
 
   return {
