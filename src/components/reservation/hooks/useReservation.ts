@@ -41,9 +41,20 @@ export function useReservation({
     return total
   }
 
-  const handlePayNow = async () => {
-    if (!selectedDate || selectedHours.length === 0) {
-      toast.error("Veuillez sélectionner une date et au moins une heure")
+  const handleRequestReservation = async () => {
+    console.log("handleRequestReservation called")
+    console.log("selectedDate:", selectedDate)
+    console.log("selectedHours:", selectedHours)
+
+    if (!selectedDate) {
+      console.log("No date selected")
+      toast.error("Veuillez sélectionner une date")
+      return
+    }
+
+    if (selectedHours.length === 0) {
+      console.log("No hours selected")
+      toast.error("Veuillez sélectionner au moins une heure")
       return
     }
 
@@ -76,20 +87,37 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_cours_de_paiement" as const
+        statut: "en_attente" as const
       }
 
-      const { data: reservation, error: reservationError } = await supabase
+      console.log("Reservation data:", reservationData)
+
+      const { error: reservationError } = await supabase
         .from("reservations")
         .insert([reservationData])
-        .select()
-        .single()
 
       if (reservationError) {
         console.error("Reservation error:", reservationError)
         throw reservationError
       }
 
+      toast.success("Demande de réservation envoyée")
+      setIsReservationDialogOpen(false)
+      setSelectedDate(undefined)
+      setSelectedHours([])
+    } catch (error) {
+      console.error("Erreur lors de la création de la réservation:", error)
+      toast.error("Erreur lors de la création de la réservation")
+    }
+  }
+
+  const handlePayNow = async () => {
+    if (!selectedDate || selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner une date et au moins une heure")
+      return
+    }
+
+    try {
       const { data: terrain } = await supabase
         .from("terrains")
         .select("nom")
@@ -112,12 +140,9 @@ export function useReservation({
           ref_command: terrainId,
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
-          reservation_hours: formattedHours,
-          reservation_id: reservation.id
+          reservation_hours: formattedHours
         }
       })
-
-      console.log("PayTech response:", response)
 
       if (response.error) {
         throw new Error(response.error.message)
@@ -130,7 +155,7 @@ export function useReservation({
       }
     } catch (error) {
       console.error("Erreur lors de l'initialisation du paiement:", error)
-      throw error
+      toast.error("Erreur lors de l'initialisation du paiement")
     }
   }
 
@@ -142,6 +167,7 @@ export function useReservation({
     isReservationDialogOpen,
     setIsReservationDialogOpen,
     calculateTotalPrice,
+    handleRequestReservation,
     handlePayNow,
   }
 }
