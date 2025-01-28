@@ -14,7 +14,6 @@ interface PaymentRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -22,23 +21,27 @@ serve(async (req) => {
   try {
     const { amount, ref_command, terrain_name, reservation_date, reservation_hours } = await req.json() as PaymentRequest
 
+    console.log("Payment request received:", {
+      amount,
+      ref_command,
+      terrain_name,
+      reservation_date,
+      reservation_hours
+    })
+
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
     
-    // Generate a unique reference by combining the terrain ID with a timestamp
-    const uniqueRef = `${ref_command}_${Date.now()}`
-    
-    // Formatage des paramètres selon la documentation PayTech
     const params = {
       item_name: `Réservation ${terrain_name}`,
       item_price: amount,
       currency: "XOF",
-      ref_command: uniqueRef,
+      ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "test",
+      ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
       success_url: `${req.headers.get("origin")}/reserviste/reservations`,
       cancel_url: `${req.headers.get("origin")}/reserviste/terrain/${ref_command}`,
       custom_field: JSON.stringify({
-        terrain_id: ref_command,
         reservation_date,
         reservation_hours,
       })
@@ -51,7 +54,12 @@ serve(async (req) => {
       "API_SECRET": Deno.env.get("PAYTECH_API_SECRET") || "",
     }
 
-    console.log("PayTech request params:", params)
+    console.log("PayTech request params:", {
+      ...params,
+      success_url: params.success_url,
+      cancel_url: params.cancel_url
+    })
+
     console.log("PayTech request headers:", {
       ...headers,
       "API_KEY": "HIDDEN",
@@ -68,6 +76,7 @@ serve(async (req) => {
     console.log("PayTech response:", data)
 
     if (!response.ok) {
+      console.error("PayTech error response:", data)
       throw new Error(`PayTech error: ${JSON.stringify(data)}`)
     }
 
