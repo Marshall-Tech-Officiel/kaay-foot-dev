@@ -69,7 +69,7 @@ serve(async (req) => {
       currency: "XOF",
       ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
-      env: "test",
+      env: "test", // Changer en "prod" pour la production
       ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
       success_url: `${req.headers.get("origin")}/reserviste/reservations`,
       cancel_url: `${req.headers.get("origin")}/reserviste/terrain/${ref_command}`,
@@ -80,19 +80,11 @@ serve(async (req) => {
       })
     }
 
-    const apiKey = Deno.env.get("PAYTECH_API_KEY")
-    const apiSecret = Deno.env.get("PAYTECH_API_SECRET")
-
-    if (!apiKey || !apiSecret) {
-      console.error("PayTech API credentials not found")
-      throw new Error("Configuration PayTech manquante")
-    }
-
     const headers = {
       "Accept": "application/json",
       "Content-Type": "application/json",
-      "API_KEY": apiKey,
-      "API_SECRET": apiSecret,
+      "API_KEY": "508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7",
+      "API_SECRET": "2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed",
     }
 
     console.log("PayTech request params:", {
@@ -119,6 +111,20 @@ serve(async (req) => {
 
       if (!data.success) {
         throw new Error(`Erreur PayTech: ${data.errors?.join(", ") || "Erreur inconnue"}`)
+      }
+
+      // Créer l'enregistrement de paiement
+      const { error: paymentError } = await supabase
+        .from("paiements")
+        .insert({
+          reservation_id,
+          montant: amount,
+          statut: "en_cours",
+        })
+
+      if (paymentError) {
+        console.error("Erreur lors de la création du paiement:", paymentError)
+        throw new Error("Erreur lors de la création du paiement")
       }
 
       return new Response(
