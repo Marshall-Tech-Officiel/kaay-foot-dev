@@ -26,12 +26,8 @@ serve(async (req) => {
     const crypto = await import('https://deno.land/std@0.177.0/crypto/mod.ts')
     const encoder = new TextEncoder()
     
-    const API_KEY = Deno.env.get('PAYTECH_API_KEY')
-    const API_SECRET = Deno.env.get('PAYTECH_API_SECRET')
-
-    if (!API_KEY || !API_SECRET) {
-      throw new Error("PayTech API keys not configured")
-    }
+    const API_KEY = "508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7"
+    const API_SECRET = "2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed"
 
     const calculateHash = async (value: string) => {
       const hash = await crypto.subtle.digest(

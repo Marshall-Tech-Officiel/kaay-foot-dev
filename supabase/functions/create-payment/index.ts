@@ -30,12 +30,8 @@ serve(async (req) => {
 
     // PayTech configuration
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
-    const API_KEY = Deno.env.get('PAYTECH_API_KEY')
-    const API_SECRET = Deno.env.get('PAYTECH_API_SECRET')
-
-    if (!API_KEY || !API_SECRET) {
-      throw new Error("PayTech API keys not configured")
-    }
+    const API_KEY = "508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7"
+    const API_SECRET = "2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed"
 
     // Get terrain details to get gérant's Wave number
     const { data: terrain } = await supabase
@@ -47,6 +43,14 @@ serve(async (req) => {
     if (!terrain?.numero_wave) {
       throw new Error("Numéro Wave du gérant non configuré")
     }
+
+    console.log("Preparing PayTech request with params:", {
+      terrain_name,
+      amount,
+      ref_command,
+      reservation_date,
+      reservation_hours
+    })
 
     // Prepare PayTech request
     const params = {
@@ -66,7 +70,7 @@ serve(async (req) => {
       })
     }
 
-    console.log("Sending payment request to PayTech:", params)
+    console.log("Sending request to PayTech:", params)
 
     // Make request to PayTech
     const response = await fetch(paymentRequestUrl, {
@@ -110,10 +114,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing payment request:", error)
     return new Response(
-      JSON.stringify({ 
-        error: "Erreur lors de la mise à jour du statut de la réservation",
-        details: "Une erreur est survenue lors du traitement de la demande de paiement"
-      }),
+      JSON.stringify({ error: error.message }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500
