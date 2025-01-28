@@ -7,7 +7,6 @@ interface ReservationConfirmationProps {
   selectedDate: Date | undefined
   selectedHours: number[]
   totalPrice: number
-  onRequestReservation: () => void
   onPayNow: () => void
 }
 
@@ -17,7 +16,6 @@ export function ReservationConfirmation({
   selectedDate,
   selectedHours,
   totalPrice,
-  onRequestReservation,
   onPayNow,
 }: ReservationConfirmationProps) {
   return (
@@ -40,9 +38,6 @@ export function ReservationConfirmation({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction onClick={onRequestReservation}>
-            Demander une réservation
-          </AlertDialogAction>
           <AlertDialogAction onClick={onPayNow}>
             Payer maintenant
           </AlertDialogAction>

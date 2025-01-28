@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,64 +12,93 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json()
-    console.log("Received PayTech webhook:", body)
+    const data = await req.json()
+    console.log("PayTech webhook received:", data)
 
     const {
       type_event,
       custom_field,
       api_key_sha256,
-      api_secret_sha256
-    } = body
+      api_secret_sha256,
+      client_phone
+    } = data
 
-    // Verify PayTech authenticity
+    // Vérifier les clés API
+    const my_api_key = "508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7"
+    const my_api_secret = "2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed"
+
     const crypto = await import('https://deno.land/std@0.177.0/crypto/mod.ts')
     const encoder = new TextEncoder()
+
+    const calculateSHA256 = async (text: string) => {
+      const data = encoder.encode(text)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    }
+
+    const calculated_api_key_sha256 = await calculateSHA256(my_api_key)
+    const calculated_api_secret_sha256 = await calculateSHA256(my_api_secret)
+
+    if (calculated_api_key_sha256 !== api_key_sha256 || calculated_api_secret_sha256 !== api_secret_sha256) {
+      throw new Error("Invalid API keys")
+    }
+
+    // Créer le client Supabase
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
     
-    const API_KEY = "508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7"
-    const API_SECRET = "2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed"
-
-    const calculateHash = async (value: string) => {
-      const hash = await crypto.subtle.digest(
-        "SHA-256",
-        encoder.encode(value)
-      )
-      return Array.from(new Uint8Array(hash))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Configuration Supabase manquante")
     }
 
-    const calculatedApiKeyHash = await calculateHash(API_KEY)
-    const calculatedApiSecretHash = await calculateHash(API_SECRET)
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    const customFieldData = JSON.parse(custom_field)
+    const reservation_id = customFieldData.reservation_id
 
-    if (calculatedApiKeyHash !== api_key_sha256 || calculatedApiSecretHash !== api_secret_sha256) {
-      throw new Error("Invalid PayTech signature")
-    }
+    if (type_event === 'sale_complete') {
+      // Mettre à jour le statut de la réservation
+      const { error: updateReservationError } = await supabase
+        .from("reservations")
+        .update({ statut: "validee" })
+        .eq("id", reservation_id)
 
-    // Parse custom field data
-    const customData = JSON.parse(custom_field)
-    const { reservation_id } = customData
+      if (updateReservationError) {
+        throw updateReservationError
+      }
 
-    if (!reservation_id) {
-      throw new Error("Missing reservation_id in custom_field")
-    }
+      // Mettre à jour le statut du paiement
+      const { error: updatePaymentError } = await supabase
+        .from("paiements")
+        .update({ 
+          statut: "complete",
+          reference_wave: client_phone || null
+        })
+        .eq("reservation_id", reservation_id)
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const supabase = createClient(supabaseUrl!, supabaseKey!)
+      if (updatePaymentError) {
+        throw updatePaymentError
+      }
+    } else if (type_event === 'sale_canceled') {
+      // Mettre à jour le statut de la réservation
+      const { error: updateReservationError } = await supabase
+        .from("reservations")
+        .update({ statut: "annulee" })
+        .eq("id", reservation_id)
 
-    // Update reservation status based on event type
-    const newStatus = type_event === 'sale_complete' ? 'confirmee' : 'annulee'
-    
-    const { error: updateError } = await supabase
-      .from('reservations')
-      .update({ statut: newStatus })
-      .eq('id', reservation_id)
+      if (updateReservationError) {
+        throw updateReservationError
+      }
 
-    if (updateError) {
-      console.error("Error updating reservation:", updateError)
-      throw new Error("Failed to update reservation status")
+      // Mettre à jour le statut du paiement
+      const { error: updatePaymentError } = await supabase
+        .from("paiements")
+        .update({ statut: "annule" })
+        .eq("reservation_id", reservation_id)
+
+      if (updatePaymentError) {
+        throw updatePaymentError
+      }
     }
 
     return new Response(
@@ -82,7 +111,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing PayTech webhook:", error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: "Une erreur est survenue lors du traitement du webhook PayTech"
+      }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500
