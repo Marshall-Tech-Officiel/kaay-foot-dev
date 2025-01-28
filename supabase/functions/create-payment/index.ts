@@ -111,11 +111,15 @@ serve(async (req) => {
       if (!response.ok) {
         const errorData = await response.text()
         console.error("PayTech error response:", errorData)
-        throw new Error(`PayTech error: ${errorData}`)
+        throw new Error(`Erreur lors de la communication avec PayTech: ${errorData}`)
       }
 
       const data = await response.json()
       console.log("PayTech response:", data)
+
+      if (!data.success) {
+        throw new Error(`Erreur PayTech: ${data.errors?.join(", ") || "Erreur inconnue"}`)
+      }
 
       return new Response(
         JSON.stringify(data),
@@ -126,7 +130,7 @@ serve(async (req) => {
       )
     } catch (payTechError) {
       console.error("PayTech request error:", payTechError)
-      throw new Error(`Erreur PayTech: ${payTechError.message}`)
+      throw new Error(`Erreur lors de la communication avec PayTech: ${payTechError.message}`)
     }
   } catch (error) {
     console.error("Error processing payment request:", error)
