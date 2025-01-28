@@ -134,9 +134,12 @@ export function useReservation({
         .map(h => `${h.toString().padStart(2, "0")}:00`)
         .join(", ")
 
+      const totalPrice = calculateTotalPrice()
+      console.log("Initiating payment for amount:", totalPrice)
+
       const response = await supabase.functions.invoke("create-payment", {
         body: {
-          amount: calculateTotalPrice(),
+          amount: totalPrice,
           ref_command: terrainId,
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
@@ -144,17 +147,22 @@ export function useReservation({
         }
       })
 
+      console.log("Payment function response:", response)
+
       if (response.error) {
+        console.error("Payment function error:", response.error)
         throw new Error(response.error.message)
       }
 
       if (response.data.success === 1 && response.data.redirect_url) {
+        console.log("Redirecting to payment URL:", response.data.redirect_url)
         window.location.href = response.data.redirect_url
       } else {
+        console.error("Invalid payment response:", response.data)
         throw new Error("Erreur lors de l'initialisation du paiement")
       }
     } catch (error) {
-      console.error("Erreur lors de l'initialisation du paiement:", error)
+      console.error("Payment error:", error)
       toast.error("Erreur lors de l'initialisation du paiement")
     }
   }
