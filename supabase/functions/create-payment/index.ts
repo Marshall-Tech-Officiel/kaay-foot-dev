@@ -14,7 +14,6 @@ interface PaymentRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -24,7 +23,6 @@ serve(async (req) => {
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
     
-    // Formatage des paramètres selon la documentation PayTech
     const params = {
       item_name: `Réservation ${terrain_name}`,
       item_price: amount,
