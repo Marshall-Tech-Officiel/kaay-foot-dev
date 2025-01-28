@@ -1,5 +1,6 @@
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { format } from "date-fns"
+import { Loader2 } from "lucide-react"
 
 interface ReservationConfirmationProps {
   open: boolean
@@ -7,8 +8,8 @@ interface ReservationConfirmationProps {
   selectedDate: Date | undefined
   selectedHours: number[]
   totalPrice: number
-  onRequestReservation: () => void
   onPayNow: () => void
+  isLoading?: boolean
 }
 
 export function ReservationConfirmation({
@@ -17,8 +18,8 @@ export function ReservationConfirmation({
   selectedDate,
   selectedHours,
   totalPrice,
-  onRequestReservation,
   onPayNow,
+  isLoading = false
 }: ReservationConfirmationProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -40,11 +41,19 @@ export function ReservationConfirmation({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction onClick={onRequestReservation}>
-            Demander une réservation
-          </AlertDialogAction>
-          <AlertDialogAction onClick={onPayNow}>
-            Payer maintenant
+          <AlertDialogAction 
+            onClick={onPayNow}
+            disabled={isLoading}
+            className="gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Chargement...
+              </>
+            ) : (
+              "Payer maintenant"
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

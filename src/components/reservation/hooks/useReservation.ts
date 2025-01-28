@@ -92,13 +92,53 @@ export function useReservation({
 
       console.log("Reservation data:", reservationData)
 
-      const { error: reservationError } = await supabase
+      const { data: reservation, error: reservationError } = await supabase
         .from("reservations")
         .insert([reservationData])
+        .select()
+        .single()
 
       if (reservationError) {
         console.error("Reservation error:", reservationError)
         throw reservationError
+      }
+
+      // Initialiser le paiement avec PayTech
+      const formattedDate = format(selectedDate, "dd/MM/yyyy")
+      const formattedHours = selectedHours
+        .map(h => `${h.toString().padStart(2, "0")}:00`)
+        .join(", ")
+
+      const { data: terrain } = await supabase
+        .from("terrains")
+        .select("nom")
+        .eq("id", terrainId)
+        .single()
+
+      if (!terrain) {
+        toast.error("Erreur lors de la récupération des informations du terrain")
+        return
+      }
+
+      const response = await supabase.functions.invoke("create-payment", {
+        body: {
+          amount: calculateTotalPrice(),
+          ref_command: terrainId,
+          terrain_name: terrain.nom,
+          reservation_date: formattedDate,
+          reservation_hours: formattedHours,
+          reservation_id: reservation.id
+        }
+      })
+
+      if (response.error) {
+        throw new Error(response.error.message)
+      }
+
+      if (response.data.success === 1 && response.data.redirect_url) {
+        window.location.href = response.data.redirect_url
+      } else {
+        throw new Error("Erreur lors de l'initialisation du paiement")
       }
 
       toast.success("Demande de réservation envoyée")
@@ -118,6 +158,48 @@ export function useReservation({
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        toast.error("Vous devez être connecté pour faire une réservation")
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error("Profile error:", profileError)
+        toast.error("Erreur lors de la récupération du profil")
+        return
+      }
+
+      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
+      
+      const reservationData = {
+        terrain_id: terrainId,
+        reserviste_id: profile.id,
+        date_reservation: format(selectedDate, "yyyy-MM-dd"),
+        heure_debut: heureDebut,
+        nombre_heures: selectedHours.length,
+        montant_total: calculateTotalPrice(),
+        statut: "en_cours_de_paiement" as const
+      }
+
+      const { data: reservation, error: reservationError } = await supabase
+        .from("reservations")
+        .insert([reservationData])
+        .select()
+        .single()
+
+      if (reservationError) {
+        console.error("Reservation error:", reservationError)
+        throw reservationError
+      }
+
       const { data: terrain } = await supabase
         .from("terrains")
         .select("nom")
@@ -140,9 +222,12 @@ export function useReservation({
           ref_command: terrainId,
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
-          reservation_hours: formattedHours
+          reservation_hours: formattedHours,
+          reservation_id: reservation.id
         }
       })
+
+      console.log("PayTech response:", response)
 
       if (response.error) {
         throw new Error(response.error.message)
