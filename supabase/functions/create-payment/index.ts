@@ -23,14 +23,6 @@ serve(async (req) => {
   try {
     const { amount, ref_command, terrain_name, reservation_date, reservation_hours, reservation_id } = await req.json() as PaymentRequest
 
-    if (!amount || amount <= 0) {
-      throw new Error("Le montant doit être supérieur à 0")
-    }
-
-    if (!reservation_id) {
-      throw new Error("ID de réservation manquant")
-    }
-
     console.log("Payment request received:", {
       amount,
       ref_command,
@@ -39,6 +31,35 @@ serve(async (req) => {
       reservation_hours,
       reservation_id
     })
+
+    if (!amount || amount <= 0) {
+      throw new Error("Le montant doit être supérieur à 0")
+    }
+
+    if (!reservation_id) {
+      throw new Error("ID de réservation manquant")
+    }
+
+    // Créer le client Supabase
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Configuration Supabase manquante")
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Mettre à jour le statut de la réservation
+    const { error: updateError } = await supabase
+      .from("reservations")
+      .update({ statut: "en_cours_de_paiement" })
+      .eq("id", reservation_id)
+
+    if (updateError) {
+      console.error("Erreur lors de la mise à jour du statut de la réservation:", updateError)
+      throw new Error("Erreur lors de la mise à jour du statut de la réservation")
+    }
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
     
@@ -80,54 +101,33 @@ serve(async (req) => {
       cancel_url: params.cancel_url
     })
 
-    console.log("PayTech request headers:", {
-      ...headers,
-      "API_KEY": "HIDDEN",
-      "API_SECRET": "HIDDEN"
-    })
+    try {
+      const response = await fetch(paymentRequestUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(params)
+      })
 
-    // Créer le client Supabase
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Configuration Supabase manquante")
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    // Mettre à jour le statut de la réservation en "en_cours_de_paiement"
-    const { error: updateError } = await supabase
-      .from("reservations")
-      .update({ statut: "en_cours_de_paiement" })
-      .eq("id", reservation_id)
-
-    if (updateError) {
-      console.error("Erreur lors de la mise à jour du statut de la réservation:", updateError)
-      throw new Error("Erreur lors de la mise à jour du statut de la réservation")
-    }
-
-    const response = await fetch(paymentRequestUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(params)
-    })
-
-    const data = await response.json()
-    console.log("PayTech response:", data)
-
-    if (!response.ok) {
-      console.error("PayTech error response:", data)
-      throw new Error(`PayTech error: ${JSON.stringify(data)}`)
-    }
-
-    return new Response(
-      JSON.stringify(data),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200 
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error("PayTech error response:", errorData)
+        throw new Error(`PayTech error: ${errorData}`)
       }
-    )
+
+      const data = await response.json()
+      console.log("PayTech response:", data)
+
+      return new Response(
+        JSON.stringify(data),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200 
+        }
+      )
+    } catch (payTechError) {
+      console.error("PayTech request error:", payTechError)
+      throw new Error(`Erreur PayTech: ${payTechError.message}`)
+    }
   } catch (error) {
     console.error("Error processing payment request:", error)
     return new Response(
