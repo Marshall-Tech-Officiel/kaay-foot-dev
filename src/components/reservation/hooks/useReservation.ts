@@ -81,7 +81,7 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_cours_de_paiement" as const
+        statut: "en_attente" as const
       }
 
       const { data: reservation, error: reservationError } = await supabase
@@ -103,14 +103,24 @@ export function useReservation({
     }
   }
 
-  const handlePayNow = async () => {
-    try {
-      const reservation = await createReservation()
-      if (!reservation) return
+  const handleRequestReservation = async () => {
+    const reservation = await createReservation()
+    if (reservation) {
+      toast.success("Demande de réservation envoyée")
+      setIsReservationDialogOpen(false)
+      setSelectedDate(undefined)
+      setSelectedHours([])
+    }
+  }
 
+  const handlePayNow = async () => {
+    const reservation = await createReservation()
+    if (!reservation) return
+
+    try {
       const { data: terrain } = await supabase
         .from("terrains")
-        .select("nom, numero_wave")
+        .select("nom")
         .eq("id", terrainId)
         .single()
 
@@ -134,8 +144,7 @@ export function useReservation({
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
           reservation_hours: formattedHours,
-          reservation_id: reservation.id,
-          numero_wave: terrain.numero_wave
+          reservation_id: reservation.id
         }
       })
 
@@ -167,6 +176,7 @@ export function useReservation({
     isReservationDialogOpen,
     setIsReservationDialogOpen,
     calculateTotalPrice,
+    handleRequestReservation,
     handlePayNow,
   }
 }
