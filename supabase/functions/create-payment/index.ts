@@ -14,6 +14,7 @@ interface PaymentRequest {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -23,13 +24,14 @@ serve(async (req) => {
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
     
+    // Formatage des paramètres selon la documentation PayTech
     const params = {
       item_name: `Réservation ${terrain_name}`,
-      item_price: amount.toString(),
+      item_price: amount,
       currency: "XOF",
       ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
-      env: "test", // Changer en "prod" pour la production
+      env: "test",
       success_url: `${req.headers.get("origin")}/reserviste/reservations`,
       cancel_url: `${req.headers.get("origin")}/reserviste/terrain/${ref_command}`,
       custom_field: JSON.stringify({
@@ -45,7 +47,12 @@ serve(async (req) => {
       "API_SECRET": Deno.env.get("PAYTECH_API_SECRET") || "",
     }
 
-    console.log("Sending payment request to PayTech:", params)
+    console.log("PayTech request params:", params)
+    console.log("PayTech request headers:", {
+      ...headers,
+      "API_KEY": "HIDDEN",
+      "API_SECRET": "HIDDEN"
+    })
 
     const response = await fetch(paymentRequestUrl, {
       method: "POST",
@@ -55,6 +62,10 @@ serve(async (req) => {
 
     const data = await response.json()
     console.log("PayTech response:", data)
+
+    if (!response.ok) {
+      throw new Error(`PayTech error: ${JSON.stringify(data)}`)
+    }
 
     return new Response(
       JSON.stringify(data),
@@ -66,7 +77,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing payment request:", error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: "Erreur lors de la communication avec PayTech"
+      }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400
