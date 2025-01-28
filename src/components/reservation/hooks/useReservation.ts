@@ -92,9 +92,11 @@ export function useReservation({
 
       console.log("Reservation data:", reservationData)
 
-      const { error: reservationError } = await supabase
+      const { data: reservation, error: reservationError } = await supabase
         .from("reservations")
         .insert([reservationData])
+        .select()
+        .single()
 
       if (reservationError) {
         console.error("Reservation error:", reservationError)
@@ -118,6 +120,48 @@ export function useReservation({
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        toast.error("Vous devez être connecté pour faire une réservation")
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error("Profile error:", profileError)
+        toast.error("Erreur lors de la récupération du profil")
+        return
+      }
+
+      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
+      
+      const reservationData = {
+        terrain_id: terrainId,
+        reserviste_id: profile.id,
+        date_reservation: format(selectedDate, "yyyy-MM-dd"),
+        heure_debut: heureDebut,
+        nombre_heures: selectedHours.length,
+        montant_total: calculateTotalPrice(),
+        statut: "en_attente" as const
+      }
+
+      const { data: reservation, error: reservationError } = await supabase
+        .from("reservations")
+        .insert([reservationData])
+        .select()
+        .single()
+
+      if (reservationError) {
+        console.error("Reservation error:", reservationError)
+        throw reservationError
+      }
+
       const { data: terrain } = await supabase
         .from("terrains")
         .select("nom")
@@ -143,7 +187,8 @@ export function useReservation({
           ref_command: terrainId,
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
-          reservation_hours: formattedHours
+          reservation_hours: formattedHours,
+          reservation_id: reservation.id
         }
       })
 
