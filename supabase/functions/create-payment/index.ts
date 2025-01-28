@@ -21,9 +21,12 @@ serve(async (req) => {
   try {
     const { amount, ref_command, terrain_name, reservation_date, reservation_hours } = await req.json() as PaymentRequest
 
+    // Create a unique reference by combining the terrain ID with a timestamp
+    const uniqueRef = `${ref_command}_${Date.now()}`
+
     console.log("Payment request received:", {
       amount,
-      ref_command,
+      ref_command: uniqueRef,
       terrain_name,
       reservation_date,
       reservation_hours
@@ -35,13 +38,14 @@ serve(async (req) => {
       item_name: `Réservation ${terrain_name}`,
       item_price: amount,
       currency: "XOF",
-      ref_command,
+      ref_command: uniqueRef,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "test",
       ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
       success_url: `${req.headers.get("origin")}/reserviste/reservations`,
       cancel_url: `${req.headers.get("origin")}/reserviste/terrain/${ref_command}`,
       custom_field: JSON.stringify({
+        terrain_id: ref_command,
         reservation_date,
         reservation_hours,
       })
