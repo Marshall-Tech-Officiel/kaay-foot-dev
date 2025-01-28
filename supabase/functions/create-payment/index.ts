@@ -137,7 +137,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: "Erreur lors de la communication avec PayTech"
+        details: "Une erreur est survenue lors du traitement de la demande de paiement"
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
