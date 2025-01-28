@@ -12,7 +12,7 @@ interface PaymentRequest {
   terrain_name: string
   reservation_date: string
   reservation_hours: string
-  reservation_id?: string
+  reservation_id: string
 }
 
 serve(async (req) => {
@@ -31,14 +31,6 @@ serve(async (req) => {
       reservation_hours,
       reservation_id
     })
-
-    if (!amount || amount <= 0) {
-      throw new Error("Le montant doit être supérieur à 0")
-    }
-
-    if (!reservation_id) {
-      throw new Error("ID de réservation manquant")
-    }
 
     // Créer le client Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")
@@ -61,15 +53,18 @@ serve(async (req) => {
       throw new Error("Erreur lors de la mise à jour du statut de la réservation")
     }
 
+    // Configuration PayTech
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
-    
+    const API_KEY = "508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7"
+    const API_SECRET = "2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed"
+
     const params = {
       item_name: `Réservation ${terrain_name}`,
       item_price: amount,
       currency: "XOF",
       ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
-      env: "test", // Changer en "prod" pour la production
+      env: "test",
       ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
       success_url: `${req.headers.get("origin")}/reserviste/reservations`,
       cancel_url: `${req.headers.get("origin")}/reserviste/terrain/${ref_command}`,
@@ -80,23 +75,17 @@ serve(async (req) => {
       })
     }
 
-    const headers = {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-      "API_KEY": "508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7",
-      "API_SECRET": "2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed",
-    }
-
-    console.log("PayTech request params:", {
-      ...params,
-      success_url: params.success_url,
-      cancel_url: params.cancel_url
-    })
+    console.log("PayTech request params:", params)
 
     try {
       const response = await fetch(paymentRequestUrl, {
         method: "POST",
-        headers,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "API_KEY": API_KEY,
+          "API_SECRET": API_SECRET
+        },
         body: JSON.stringify(params)
       })
 

@@ -20,6 +20,7 @@ serve(async (req) => {
       custom_field,
       api_key_sha256,
       api_secret_sha256,
+      client_phone
     } = data
 
     // Vérifier les clés API
@@ -71,7 +72,7 @@ serve(async (req) => {
         .from("paiements")
         .update({ 
           statut: "complete",
-          reference_wave: data.client_phone || null
+          reference_wave: client_phone || null
         })
         .eq("reservation_id", reservation_id)
 
