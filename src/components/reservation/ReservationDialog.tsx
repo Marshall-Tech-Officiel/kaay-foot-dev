@@ -37,7 +37,6 @@ export function ReservationDialog({
     isReservationDialogOpen,
     setIsReservationDialogOpen,
     calculateTotalPrice,
-    handleRequestReservation,
     handlePayNow,
   } = useReservation({
     terrainId,
@@ -140,7 +139,6 @@ export function ReservationDialog({
         selectedDate={selectedDate}
         selectedHours={selectedHours}
         totalPrice={calculateTotalPrice()}
-        onRequestReservation={handleRequestReservation}
         onPayNow={handlePayNow}
       />
     </>
