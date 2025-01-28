@@ -21,6 +21,10 @@ serve(async (req) => {
   try {
     const { amount, ref_command, terrain_name, reservation_date, reservation_hours } = await req.json() as PaymentRequest
 
+    if (!amount || amount <= 0) {
+      throw new Error("Le montant doit être supérieur à 0")
+    }
+
     console.log("Payment request received:", {
       amount,
       ref_command,
@@ -47,11 +51,19 @@ serve(async (req) => {
       })
     }
 
+    const apiKey = Deno.env.get("PAYTECH_API_KEY")
+    const apiSecret = Deno.env.get("PAYTECH_API_SECRET")
+
+    if (!apiKey || !apiSecret) {
+      console.error("PayTech API credentials not found")
+      throw new Error("Configuration PayTech manquante")
+    }
+
     const headers = {
       "Accept": "application/json",
       "Content-Type": "application/json",
-      "API_KEY": Deno.env.get("PAYTECH_API_KEY") || "",
-      "API_SECRET": Deno.env.get("PAYTECH_API_SECRET") || "",
+      "API_KEY": apiKey,
+      "API_SECRET": apiSecret,
     }
 
     console.log("PayTech request params:", {
