@@ -84,6 +84,7 @@ export function ReservationDialog({
       await handlePayNow()
     } catch (error) {
       console.error("Erreur lors du paiement:", error)
+      toast.error("Une erreur est survenue lors de l'initialisation du paiement")
     } finally {
       setIsLoading(false)
     }
@@ -128,9 +129,10 @@ export function ReservationDialog({
                       </div>
                       <Button 
                         className="w-full"
-                        onClick={handlePaymentClick}
+                        onClick={handleConfirmedPayment}
+                        disabled={isLoading}
                       >
-                        Réserver maintenant
+                        {isLoading ? "Chargement..." : "Payer maintenant"}
                       </Button>
                     </div>
                   )}

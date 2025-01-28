@@ -41,116 +41,6 @@ export function useReservation({
     return total
   }
 
-  const handleRequestReservation = async () => {
-    console.log("handleRequestReservation called")
-    console.log("selectedDate:", selectedDate)
-    console.log("selectedHours:", selectedHours)
-
-    if (!selectedDate) {
-      console.log("No date selected")
-      toast.error("Veuillez sélectionner une date")
-      return
-    }
-
-    if (selectedHours.length === 0) {
-      console.log("No hours selected")
-      toast.error("Veuillez sélectionner au moins une heure")
-      return
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        toast.error("Vous devez être connecté pour faire une réservation")
-        return
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
-
-      if (profileError || !profile) {
-        console.error("Profile error:", profileError)
-        toast.error("Erreur lors de la récupération du profil")
-        return
-      }
-
-      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
-      
-      const reservationData = {
-        terrain_id: terrainId,
-        reserviste_id: profile.id,
-        date_reservation: format(selectedDate, "yyyy-MM-dd"),
-        heure_debut: heureDebut,
-        nombre_heures: selectedHours.length,
-        montant_total: calculateTotalPrice(),
-        statut: "en_attente" as const
-      }
-
-      console.log("Reservation data:", reservationData)
-
-      const { data: reservation, error: reservationError } = await supabase
-        .from("reservations")
-        .insert([reservationData])
-        .select()
-        .single()
-
-      if (reservationError) {
-        console.error("Reservation error:", reservationError)
-        throw reservationError
-      }
-
-      // Initialiser le paiement avec PayTech
-      const formattedDate = format(selectedDate, "dd/MM/yyyy")
-      const formattedHours = selectedHours
-        .map(h => `${h.toString().padStart(2, "0")}:00`)
-        .join(", ")
-
-      const { data: terrain } = await supabase
-        .from("terrains")
-        .select("nom")
-        .eq("id", terrainId)
-        .single()
-
-      if (!terrain) {
-        toast.error("Erreur lors de la récupération des informations du terrain")
-        return
-      }
-
-      const response = await supabase.functions.invoke("create-payment", {
-        body: {
-          amount: calculateTotalPrice(),
-          ref_command: terrainId,
-          terrain_name: terrain.nom,
-          reservation_date: formattedDate,
-          reservation_hours: formattedHours,
-          reservation_id: reservation.id
-        }
-      })
-
-      if (response.error) {
-        throw new Error(response.error.message)
-      }
-
-      if (response.data.success === 1 && response.data.redirect_url) {
-        window.location.href = response.data.redirect_url
-      } else {
-        throw new Error("Erreur lors de l'initialisation du paiement")
-      }
-
-      toast.success("Demande de réservation envoyée")
-      setIsReservationDialogOpen(false)
-      setSelectedDate(undefined)
-      setSelectedHours([])
-    } catch (error) {
-      console.error("Erreur lors de la création de la réservation:", error)
-      toast.error("Erreur lors de la création de la réservation")
-    }
-  }
-
   const handlePayNow = async () => {
     if (!selectedDate || selectedHours.length === 0) {
       toast.error("Veuillez sélectionner une date et au moins une heure")
@@ -240,7 +130,7 @@ export function useReservation({
       }
     } catch (error) {
       console.error("Erreur lors de l'initialisation du paiement:", error)
-      toast.error("Erreur lors de l'initialisation du paiement")
+      throw error
     }
   }
 
@@ -252,7 +142,6 @@ export function useReservation({
     isReservationDialogOpen,
     setIsReservationDialogOpen,
     calculateTotalPrice,
-    handleRequestReservation,
     handlePayNow,
   }
 }
