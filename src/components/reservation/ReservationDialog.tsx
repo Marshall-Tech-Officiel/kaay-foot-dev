@@ -7,6 +7,8 @@ import { useReservation } from "./hooks/useReservation"
 import { useReservationHours } from "./hooks/useReservationHours"
 import { toast } from "sonner"
 import { formatPrice } from "@/lib/utils"
+import { ReservationConfirmation } from "./ReservationConfirmation"
+import { useState } from "react"
 
 interface ReservationDialogProps {
   terrainId: string
@@ -25,6 +27,8 @@ export function ReservationDialog({
   heureDebutNuit,
   heureFinNuit
 }: ReservationDialogProps) {
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
+
   const {
     selectedDate,
     setSelectedDate,
@@ -58,10 +62,11 @@ export function ReservationDialog({
     if (!open) {
       setSelectedDate(undefined)
       setSelectedHours([])
+      setIsConfirmationOpen(false)
     }
   }
 
-  const handleReservation = () => {
+  const handleReservationClick = () => {
     if (!selectedDate) {
       toast.error("Veuillez sélectionner une date")
       return
@@ -70,69 +75,74 @@ export function ReservationDialog({
       toast.error("Veuillez sélectionner au moins une heure")
       return
     }
-    handleRequestReservation()
+    setIsConfirmationOpen(true)
   }
 
   return (
-    <Dialog open={isReservationDialogOpen} onOpenChange={handleDialogOpenChange}>
-      <DialogTrigger asChild>
-        <Button className="w-full mt-4">Réserver</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Réserver {terrainNom}</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-4">
-            <ReservationCalendar
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-            />
-            <ReservationLegend />
-          </div>
-          <div className="space-y-4">
-            <h3 className="font-medium">Heures disponibles</h3>
-            {selectedDate ? (
-              <>
-                <HourSelector
-                  hours={hours}
-                  selectedHours={selectedHours}
-                  selectedDate={selectedDate}
-                  isHourReserved={isHourReserved}
-                  isHourPassed={isHourPassed}
-                  isAdjacentToSelected={(hour) => isAdjacentToSelected(hour, selectedHours)}
-                  onHourClick={handleHourClick}
-                />
-                {selectedHours.length > 0 && (
-                  <div className="space-y-4 mt-4">
-                    <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
-                      <span className="font-medium">Prix total:</span>
-                      <span className="text-lg font-bold">{formatPrice(calculateTotalPrice())} FCFA</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+    <>
+      <Dialog open={isReservationDialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogTrigger asChild>
+          <Button className="w-full mt-4">Réserver</Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Réserver {terrainNom}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <ReservationCalendar
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+              />
+              <ReservationLegend />
+            </div>
+            <div className="space-y-4">
+              <h3 className="font-medium">Heures disponibles</h3>
+              {selectedDate ? (
+                <>
+                  <HourSelector
+                    hours={hours}
+                    selectedHours={selectedHours}
+                    selectedDate={selectedDate}
+                    isHourReserved={isHourReserved}
+                    isHourPassed={isHourPassed}
+                    isAdjacentToSelected={(hour) => isAdjacentToSelected(hour, selectedHours)}
+                    onHourClick={handleHourClick}
+                  />
+                  {selectedHours.length > 0 && (
+                    <div className="space-y-4 mt-4">
+                      <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                        <span className="font-medium">Prix total:</span>
+                        <span className="text-lg font-bold">{formatPrice(calculateTotalPrice())} FCFA</span>
+                      </div>
                       <Button 
-                        variant="outline"
-                        onClick={handleReservation}
-                      >
-                        Demander réservation
-                      </Button>
-                      <Button 
-                        onClick={handlePayNow}
+                        className="w-full"
+                        onClick={handleReservationClick}
                       >
                         Réserver maintenant
                       </Button>
                     </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-muted-foreground">
-                Sélectionnez une date pour voir les heures disponibles
-              </p>
-            )}
+                  )}
+                </>
+              ) : (
+                <p className="text-muted-foreground">
+                  Sélectionnez une date pour voir les heures disponibles
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <ReservationConfirmation
+        open={isConfirmationOpen}
+        onOpenChange={setIsConfirmationOpen}
+        selectedDate={selectedDate}
+        selectedHours={selectedHours}
+        totalPrice={calculateTotalPrice()}
+        onRequestReservation={handleRequestReservation}
+        onPayNow={handlePayNow}
+      />
+    </>
   )
 }
