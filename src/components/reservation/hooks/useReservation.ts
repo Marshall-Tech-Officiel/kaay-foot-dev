@@ -41,15 +41,21 @@ export function useReservation({
     return total
   }
 
-  const createReservation = async () => {
+  const handleRequestReservation = async () => {
+    console.log("handleRequestReservation called")
+    console.log("selectedDate:", selectedDate)
+    console.log("selectedHours:", selectedHours)
+
     if (!selectedDate) {
+      console.log("No date selected")
       toast.error("Veuillez sélectionner une date")
-      return null
+      return
     }
 
     if (selectedHours.length === 0) {
+      console.log("No hours selected")
       toast.error("Veuillez sélectionner au moins une heure")
-      return null
+      return
     }
 
     try {
@@ -57,7 +63,7 @@ export function useReservation({
       
       if (!user) {
         toast.error("Vous devez être connecté pour faire une réservation")
-        return null
+        return
       }
 
       const { data: profile, error: profileError } = await supabase
@@ -69,7 +75,7 @@ export function useReservation({
       if (profileError || !profile) {
         console.error("Profile error:", profileError)
         toast.error("Erreur lors de la récupération du profil")
-        return null
+        return
       }
 
       const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
@@ -81,36 +87,40 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: calculateTotalPrice(),
-        statut: "en_cours_de_paiement" as const
+        statut: "en_attente" as const
       }
 
-      const { data: reservation, error: reservationError } = await supabase
+      console.log("Reservation data:", reservationData)
+
+      const { error: reservationError } = await supabase
         .from("reservations")
         .insert([reservationData])
-        .select()
-        .single()
 
       if (reservationError) {
         console.error("Reservation error:", reservationError)
         throw reservationError
       }
 
-      return reservation
+      toast.success("Demande de réservation envoyée")
+      setIsReservationDialogOpen(false)
+      setSelectedDate(undefined)
+      setSelectedHours([])
     } catch (error) {
       console.error("Erreur lors de la création de la réservation:", error)
       toast.error("Erreur lors de la création de la réservation")
-      return null
     }
   }
 
   const handlePayNow = async () => {
-    try {
-      const reservation = await createReservation()
-      if (!reservation) return
+    if (!selectedDate || selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner une date et au moins une heure")
+      return
+    }
 
+    try {
       const { data: terrain } = await supabase
         .from("terrains")
-        .select("nom, numero_wave")
+        .select("nom")
         .eq("id", terrainId)
         .single()
 
@@ -119,42 +129,32 @@ export function useReservation({
         return
       }
 
-      const formattedDate = format(selectedDate!, "dd/MM/yyyy")
+      const formattedDate = format(selectedDate, "dd/MM/yyyy")
       const formattedHours = selectedHours
         .map(h => `${h.toString().padStart(2, "0")}:00`)
         .join(", ")
 
-      const totalPrice = calculateTotalPrice()
-      console.log("Initiating payment for amount:", totalPrice)
-
       const response = await supabase.functions.invoke("create-payment", {
         body: {
-          amount: totalPrice,
+          amount: calculateTotalPrice(),
           ref_command: terrainId,
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
-          reservation_hours: formattedHours,
-          reservation_id: reservation.id,
-          numero_wave: terrain.numero_wave
+          reservation_hours: formattedHours
         }
       })
 
-      console.log("Payment function response:", response)
-
       if (response.error) {
-        console.error("Payment function error:", response.error)
         throw new Error(response.error.message)
       }
 
-      if (response.data?.success === 1 && response.data?.redirect_url) {
-        console.log("Redirecting to payment URL:", response.data.redirect_url)
+      if (response.data.success === 1 && response.data.redirect_url) {
         window.location.href = response.data.redirect_url
       } else {
-        console.error("Invalid payment response:", response.data)
         throw new Error("Erreur lors de l'initialisation du paiement")
       }
     } catch (error) {
-      console.error("Payment error:", error)
+      console.error("Erreur lors de l'initialisation du paiement:", error)
       toast.error("Erreur lors de l'initialisation du paiement")
     }
   }
@@ -167,6 +167,7 @@ export function useReservation({
     isReservationDialogOpen,
     setIsReservationDialogOpen,
     calculateTotalPrice,
+    handleRequestReservation,
     handlePayNow,
   }
 }
