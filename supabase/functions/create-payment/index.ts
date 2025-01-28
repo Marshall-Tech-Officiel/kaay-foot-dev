@@ -24,17 +24,21 @@ serve(async (req) => {
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
     
+    // Generate a unique reference by combining the terrain ID with a timestamp
+    const uniqueRef = `${ref_command}_${Date.now()}`
+    
     // Formatage des paramètres selon la documentation PayTech
     const params = {
       item_name: `Réservation ${terrain_name}`,
       item_price: amount,
       currency: "XOF",
-      ref_command,
+      ref_command: uniqueRef,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "test",
       success_url: `${req.headers.get("origin")}/reserviste/reservations`,
       cancel_url: `${req.headers.get("origin")}/reserviste/terrain/${ref_command}`,
       custom_field: JSON.stringify({
+        terrain_id: ref_command,
         reservation_date,
         reservation_hours,
       })
