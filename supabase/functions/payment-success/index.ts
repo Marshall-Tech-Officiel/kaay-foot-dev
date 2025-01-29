@@ -59,7 +59,7 @@ serve(async (req) => {
       .delete()
       .eq('ref_command', ref)
 
-    // Redirect to the reservations page
+    // Redirect to the reservations page with proper path
     return new Response(null, {
       headers: {
         ...corsHeaders,
