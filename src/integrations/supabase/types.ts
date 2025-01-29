@@ -240,6 +240,27 @@ export type Database = {
           },
         ]
       }
+      reservations_pending: {
+        Row: {
+          created_at: string | null
+          id: string
+          ref_command: string
+          reservation_data: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ref_command: string
+          reservation_data: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ref_command?: string
+          reservation_data?: Json
+        }
+        Relationships: []
+      }
       terrain_ratings: {
         Row: {
           created_at: string | null
