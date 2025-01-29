@@ -118,6 +118,25 @@ export function useReservation({
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        toast.error("Vous devez être connecté pour faire une réservation")
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error("Profile error:", profileError)
+        toast.error("Erreur lors de la récupération du profil")
+        return
+      }
+
       const { data: terrain } = await supabase
         .from("terrains")
         .select("nom")
@@ -134,13 +153,26 @@ export function useReservation({
         .map(h => `${h.toString().padStart(2, "0")}:00`)
         .join(", ")
 
+      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
+      const montantTotal = calculateTotalPrice()
+
+      const reservationData = {
+        terrain_id: terrainId,
+        reserviste_id: profile.id,
+        date_reservation: format(selectedDate, "yyyy-MM-dd"),
+        heure_debut: heureDebut,
+        nombre_heures: selectedHours.length,
+        montant_total: montantTotal,
+      }
+
       const response = await supabase.functions.invoke("create-payment", {
         body: {
-          amount: calculateTotalPrice(),
+          amount: montantTotal,
           ref_command: terrainId,
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
-          reservation_hours: formattedHours
+          reservation_hours: formattedHours,
+          reservationData
         }
       })
 
