@@ -20,6 +20,8 @@ interface PaymentRequest {
     nombre_heures: number
     montant_total: number
   }
+  access_token: string
+  refresh_token: string
 }
 
 serve(async (req) => {
@@ -28,7 +30,16 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, ref_command, terrain_name, reservation_date, reservation_hours, reservationData } = await req.json() as PaymentRequest
+    const { 
+      amount, 
+      ref_command, 
+      terrain_name, 
+      reservation_date, 
+      reservation_hours, 
+      reservationData,
+      access_token,
+      refresh_token
+    } = await req.json() as PaymentRequest
 
     // Create a unique reference by combining the terrain ID with a timestamp
     const uniqueRef = `${ref_command}_${Date.now()}`
@@ -52,7 +63,7 @@ serve(async (req) => {
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "test",
       ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
-      success_url: `${req.headers.get("origin")}/api/payment-success?ref=${uniqueRef}`,
+      success_url: `${req.headers.get("origin")}/api/payment-success?ref=${uniqueRef}&access_token=${access_token}&refresh_token=${refresh_token}`,
       cancel_url: `${req.headers.get("origin")}/reserviste/reservations`,
       custom_field: JSON.stringify({
         terrain_id: ref_command,

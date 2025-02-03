@@ -118,9 +118,9 @@ export function useReservation({
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
       
-      if (!user) {
+      if (!session?.user) {
         toast.error("Vous devez être connecté pour faire une réservation")
         return
       }
@@ -128,7 +128,7 @@ export function useReservation({
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .single()
 
       if (profileError || !profile) {
@@ -165,6 +165,10 @@ export function useReservation({
         montant_total: montantTotal,
       }
 
+      // Store the access token in localStorage before redirecting
+      localStorage.setItem('sb-access-token', session.access_token)
+      localStorage.setItem('sb-refresh-token', session.refresh_token)
+
       const response = await supabase.functions.invoke("create-payment", {
         body: {
           amount: montantTotal,
@@ -172,7 +176,9 @@ export function useReservation({
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
           reservation_hours: formattedHours,
-          reservationData
+          reservationData,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
         }
       })
 
