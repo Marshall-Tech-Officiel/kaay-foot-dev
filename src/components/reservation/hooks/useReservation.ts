@@ -22,6 +22,94 @@ export function useReservation({
   const [selectedHours, setSelectedHours] = useState<number[]>([])
   const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
 
+  const handlePayNow = async () => {
+    if (!selectedDate || selectedHours.length === 0) {
+      toast.error("Veuillez sélectionner une date et au moins une heure")
+      return
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.user) {
+        toast.error("Vous devez être connecté pour faire une réservation")
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error("Profile error:", profileError)
+        toast.error("Erreur lors de la récupération du profil")
+        return
+      }
+
+      const { data: terrain } = await supabase
+        .from("terrains")
+        .select("nom")
+        .eq("id", terrainId)
+        .single()
+
+      if (!terrain) {
+        toast.error("Erreur lors de la récupération des informations du terrain")
+        return
+      }
+
+      const formattedDate = format(selectedDate, "dd/MM/yyyy")
+      const formattedHours = selectedHours
+        .map(h => `${h.toString().padStart(2, "0")}:00`)
+        .join(", ")
+
+      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
+      const montantTotal = calculateTotalPrice()
+
+      const reservationData = {
+        terrain_id: terrainId,
+        reserviste_id: profile.id,
+        date_reservation: format(selectedDate, "yyyy-MM-dd"),
+        heure_debut: heureDebut,
+        nombre_heures: selectedHours.length,
+        montant_total: montantTotal,
+      }
+
+      // Store the access token in localStorage before redirecting
+      localStorage.setItem('sb-access-token', session.access_token)
+      localStorage.setItem('sb-refresh-token', session.refresh_token)
+
+      const currentUrl = window.location.href
+      const response = await supabase.functions.invoke("create-payment", {
+        body: {
+          amount: montantTotal,
+          ref_command: terrainId,
+          terrain_name: terrain.nom,
+          reservation_date: formattedDate,
+          reservation_hours: formattedHours,
+          reservationData,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          cancel_url: currentUrl
+        }
+      })
+
+      if (response.error) {
+        throw new Error(response.error.message)
+      }
+
+      if (response.data.success === 1 && response.data.redirect_url) {
+        window.location.href = response.data.redirect_url
+      } else {
+        throw new Error("Erreur lors de l'initialisation du paiement")
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'initialisation du paiement:", error)
+      toast.error("Erreur lors de l'initialisation du paiement")
+    }
+  }
+
   const calculateTotalPrice = () => {
     let total = 0
     const debutNuit = parseInt(heureDebutNuit.split(":")[0])
@@ -108,92 +196,6 @@ export function useReservation({
     } catch (error) {
       console.error("Erreur lors de la création de la réservation:", error)
       toast.error("Erreur lors de la création de la réservation")
-    }
-  }
-
-  const handlePayNow = async () => {
-    if (!selectedDate || selectedHours.length === 0) {
-      toast.error("Veuillez sélectionner une date et au moins une heure")
-      return
-    }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session?.user) {
-        toast.error("Vous devez être connecté pour faire une réservation")
-        return
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", session.user.id)
-        .single()
-
-      if (profileError || !profile) {
-        console.error("Profile error:", profileError)
-        toast.error("Erreur lors de la récupération du profil")
-        return
-      }
-
-      const { data: terrain } = await supabase
-        .from("terrains")
-        .select("nom")
-        .eq("id", terrainId)
-        .single()
-
-      if (!terrain) {
-        toast.error("Erreur lors de la récupération des informations du terrain")
-        return
-      }
-
-      const formattedDate = format(selectedDate, "dd/MM/yyyy")
-      const formattedHours = selectedHours
-        .map(h => `${h.toString().padStart(2, "0")}:00`)
-        .join(", ")
-
-      const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
-      const montantTotal = calculateTotalPrice()
-
-      const reservationData = {
-        terrain_id: terrainId,
-        reserviste_id: profile.id,
-        date_reservation: format(selectedDate, "yyyy-MM-dd"),
-        heure_debut: heureDebut,
-        nombre_heures: selectedHours.length,
-        montant_total: montantTotal,
-      }
-
-      // Store the access token in localStorage before redirecting
-      localStorage.setItem('sb-access-token', session.access_token)
-      localStorage.setItem('sb-refresh-token', session.refresh_token)
-
-      const response = await supabase.functions.invoke("create-payment", {
-        body: {
-          amount: montantTotal,
-          ref_command: terrainId,
-          terrain_name: terrain.nom,
-          reservation_date: formattedDate,
-          reservation_hours: formattedHours,
-          reservationData,
-          access_token: session.access_token,
-          refresh_token: session.refresh_token
-        }
-      })
-
-      if (response.error) {
-        throw new Error(response.error.message)
-      }
-
-      if (response.data.success === 1 && response.data.redirect_url) {
-        window.location.href = response.data.redirect_url
-      } else {
-        throw new Error("Erreur lors de l'initialisation du paiement")
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'initialisation du paiement:", error)
-      toast.error("Erreur lors de l'initialisation du paiement")
     }
   }
 
