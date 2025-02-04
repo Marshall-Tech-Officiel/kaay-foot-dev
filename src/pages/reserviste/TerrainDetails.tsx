@@ -9,31 +9,11 @@ import { TerrainRating } from "@/components/terrain/TerrainRating"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
-import { toast } from "sonner"
-import { useEffect } from "react"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function TerrainDetails() {
   const { id } = useParams()
-
-  // Restore session if tokens exist in localStorage
-  useEffect(() => {
-    const accessToken = localStorage.getItem('sb-access-token')
-    const refreshToken = localStorage.getItem('sb-refresh-token')
-
-    if (accessToken && refreshToken) {
-      const restoreSession = async () => {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        })
-        if (error) {
-          console.error("Error restoring session:", error)
-          toast.error("Erreur lors de la restauration de la session")
-        }
-      }
-      restoreSession()
-    }
-  }, [])
+  const { toast } = useToast()
 
   const { data: terrain, isLoading, error } = useQuery({
     queryKey: ["terrain-details", id],
@@ -63,13 +43,15 @@ export default function TerrainDetails() {
       return data
     },
     enabled: !!id,
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
   if (error) {
     console.error("Query error:", error)
-    toast.error("Impossible de charger les détails du terrain. Veuillez réessayer plus tard.")
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Impossible de charger les détails du terrain. Veuillez réessayer plus tard.",
+    })
     return (
       <MainLayout>
         <div className="container mx-auto py-6">
