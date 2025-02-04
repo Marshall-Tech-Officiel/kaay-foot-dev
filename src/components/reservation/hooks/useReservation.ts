@@ -2,6 +2,7 @@ import { useState } from "react"
 import { format } from "date-fns"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
+import { useNavigate } from "react-router-dom"
 
 interface UseReservationProps {
   terrainId: string
@@ -21,6 +22,7 @@ export function useReservation({
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedHours, setSelectedHours] = useState<number[]>([])
   const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
+  const navigate = useNavigate()
 
   const handlePayNow = async () => {
     if (!selectedDate || selectedHours.length === 0) {
@@ -74,24 +76,32 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: montantTotal,
+        statut: "en_cours_de_paiement"
       }
 
-      // Store the access token in localStorage before redirecting
-      localStorage.setItem('sb-access-token', session.access_token)
-      localStorage.setItem('sb-refresh-token', session.refresh_token)
+      // Store the reservation data in the pending table
+      const { data: pendingReservation, error: pendingError } = await supabase
+        .from("reservations_pending")
+        .insert([{
+          ref_command: `${terrainId}_${Date.now()}`,
+          reservation_data: reservationData
+        }])
+        .select()
+        .single()
 
-      const currentUrl = window.location.href
+      if (pendingError) {
+        throw pendingError
+      }
+
       const response = await supabase.functions.invoke("create-payment", {
         body: {
           amount: montantTotal,
-          ref_command: terrainId,
+          ref_command: pendingReservation.ref_command,
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
           reservation_hours: formattedHours,
           reservationData,
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-          cancel_url: currentUrl
+          cancel_url: window.location.href
         }
       })
 
@@ -130,18 +140,12 @@ export function useReservation({
   }
 
   const handleRequestReservation = async () => {
-    console.log("handleRequestReservation called")
-    console.log("selectedDate:", selectedDate)
-    console.log("selectedHours:", selectedHours)
-
     if (!selectedDate) {
-      console.log("No date selected")
       toast.error("Veuillez sélectionner une date")
       return
     }
 
     if (selectedHours.length === 0) {
-      console.log("No hours selected")
       toast.error("Veuillez sélectionner au moins une heure")
       return
     }
@@ -168,31 +172,25 @@ export function useReservation({
 
       const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
       
-      const reservationData = {
-        terrain_id: terrainId,
-        reserviste_id: profile.id,
-        date_reservation: format(selectedDate, "yyyy-MM-dd"),
-        heure_debut: heureDebut,
-        nombre_heures: selectedHours.length,
-        montant_total: calculateTotalPrice(),
-        statut: "en_attente" as const
-      }
-
-      console.log("Reservation data:", reservationData)
-
       const { error: reservationError } = await supabase
         .from("reservations")
-        .insert([reservationData])
+        .insert([{
+          terrain_id: terrainId,
+          reserviste_id: profile.id,
+          date_reservation: format(selectedDate, "yyyy-MM-dd"),
+          heure_debut: heureDebut,
+          nombre_heures: selectedHours.length,
+          montant_total: calculateTotalPrice(),
+          statut: "en_attente"
+        }])
 
       if (reservationError) {
-        console.error("Reservation error:", reservationError)
         throw reservationError
       }
 
       toast.success("Demande de réservation envoyée")
       setIsReservationDialogOpen(false)
-      setSelectedDate(undefined)
-      setSelectedHours([])
+      navigate("/reserviste/reservations")
     } catch (error) {
       console.error("Erreur lors de la création de la réservation:", error)
       toast.error("Erreur lors de la création de la réservation")
