@@ -10,28 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
 import { toast } from "sonner"
-import { useEffect } from "react"
-import { useAuth } from "@/hooks/useAuth"
 
 export default function TerrainDetails() {
   const { id } = useParams()
-  const { user, isLoading: isAuthLoading } = useAuth()
 
-  // Restaurer la session si les tokens sont présents dans localStorage
-  useEffect(() => {
-    const accessToken = localStorage.getItem('sb-access-token')
-    const refreshToken = localStorage.getItem('sb-refresh-token')
-    
-    if (accessToken && refreshToken && !user) {
-      console.log("Restoring session from localStorage...")
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      })
-    }
-  }, [user])
-
-  const { data: terrain, isLoading: isTerrainLoading, error } = useQuery({
+  const { data: terrain, isLoading, error } = useQuery({
     queryKey: ["terrain-details", id],
     queryFn: async () => {
       console.log("Fetching terrain details for ID:", id)
@@ -58,13 +41,10 @@ export default function TerrainDetails() {
       console.log("Terrain data:", data)
       return data
     },
-    enabled: !!id && !isAuthLoading,
-    retry: 2,
-    retryDelay: 1000,
+    enabled: !!id,
+    retry: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
-
-  const isLoading = isAuthLoading || isTerrainLoading
 
   if (error) {
     console.error("Query error:", error)
