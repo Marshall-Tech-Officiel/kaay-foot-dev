@@ -19,9 +19,7 @@ interface PaymentRequest {
     heure_debut: string
     nombre_heures: number
     montant_total: number
-    statut: string
   }
-  cancel_url: string
 }
 
 serve(async (req) => {
@@ -30,24 +28,18 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      amount, 
-      ref_command, 
-      terrain_name, 
-      reservation_date, 
-      reservation_hours, 
-      reservationData,
-      cancel_url
-    } = await req.json() as PaymentRequest
+    const { amount, ref_command, terrain_name, reservation_date, reservation_hours, reservationData } = await req.json() as PaymentRequest
+
+    // Create a unique reference by combining the terrain ID with a timestamp
+    const uniqueRef = `${ref_command}_${Date.now()}`
 
     console.log("Payment request received:", {
       amount,
-      ref_command,
+      ref_command: uniqueRef,
       terrain_name,
       reservation_date,
       reservation_hours,
-      reservationData,
-      cancel_url
+      reservationData
     })
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
@@ -56,14 +48,16 @@ serve(async (req) => {
       item_name: `Réservation ${terrain_name}`,
       item_price: amount,
       currency: "XOF",
-      ref_command: ref_command,
+      ref_command: uniqueRef,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "test",
       ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
-      success_url: `${req.headers.get("origin")}/reserviste/reservations`,
-      cancel_url: cancel_url,
+      success_url: `${req.headers.get("origin")}/api/payment-success?ref=${uniqueRef}`,
+      cancel_url: `${req.headers.get("origin")}/reserviste/reservations`,
       custom_field: JSON.stringify({
-        ref_command,
+        terrain_id: ref_command,
+        reservation_date,
+        reservation_hours,
         reservationData
       })
     }
@@ -75,7 +69,17 @@ serve(async (req) => {
       "API_SECRET": Deno.env.get("PAYTECH_API_SECRET") || "",
     }
 
-    console.log("PayTech request params:", params)
+    console.log("PayTech request params:", {
+      ...params,
+      success_url: params.success_url,
+      cancel_url: params.cancel_url
+    })
+
+    console.log("PayTech request headers:", {
+      ...headers,
+      "API_KEY": "HIDDEN",
+      "API_SECRET": "HIDDEN"
+    })
 
     const response = await fetch(paymentRequestUrl, {
       method: "POST",
@@ -90,6 +94,19 @@ serve(async (req) => {
       console.error("PayTech error response:", data)
       throw new Error(`PayTech error: ${JSON.stringify(data)}`)
     }
+
+    // Store the reservation data in Supabase for later use
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    await supabase
+      .from('reservations_pending')
+      .insert([{
+        ref_command: uniqueRef,
+        reservation_data: reservationData
+      }])
 
     return new Response(
       JSON.stringify(data),

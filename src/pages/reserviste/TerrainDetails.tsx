@@ -9,15 +9,13 @@ import { TerrainRating } from "@/components/terrain/TerrainRating"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
-import { toast } from "sonner"
 
 export default function TerrainDetails() {
   const { id } = useParams()
 
-  const { data: terrain, isLoading, error } = useQuery({
+  const { data: terrain, isLoading } = useQuery({
     queryKey: ["terrain-details", id],
     queryFn: async () => {
-      console.log("Fetching terrain details for ID:", id)
       const { data, error } = await supabase
         .from("terrains")
         .select(`
@@ -27,38 +25,13 @@ export default function TerrainDetails() {
           photos:photos_terrain(url)
         `)
         .eq("id", id)
-        .maybeSingle()
+        .single()
 
-      if (error) {
-        console.error("Error fetching terrain:", error)
-        throw error
-      }
-      
-      if (!data) {
-        throw new Error("Terrain non trouvé")
-      }
-
-      console.log("Terrain data:", data)
+      if (error) throw error
       return data
     },
     enabled: !!id,
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
   })
-
-  if (error) {
-    console.error("Query error:", error)
-    toast.error("Impossible de charger les détails du terrain. Veuillez réessayer plus tard.")
-    return (
-      <MainLayout>
-        <div className="container mx-auto py-6">
-          <div className="text-center">
-            <p className="text-red-500">Une erreur est survenue lors du chargement des détails du terrain.</p>
-          </div>
-        </div>
-      </MainLayout>
-    )
-  }
 
   if (isLoading) {
     return (
@@ -73,10 +46,8 @@ export default function TerrainDetails() {
   if (!terrain) {
     return (
       <MainLayout>
-        <div className="container mx-auto py-6">
-          <div className="text-center">
-            <p className="text-muted-foreground">Terrain non trouvé</p>
-          </div>
+        <div className="flex h-[200px] items-center justify-center">
+          <p className="text-muted-foreground">Terrain non trouvé</p>
         </div>
       </MainLayout>
     )
