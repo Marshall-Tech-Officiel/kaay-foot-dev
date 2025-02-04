@@ -10,9 +10,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
 import { toast } from "sonner"
+import { useEffect } from "react"
 
 export default function TerrainDetails() {
   const { id } = useParams()
+
+  // Restore session if tokens exist in localStorage
+  useEffect(() => {
+    const accessToken = localStorage.getItem('sb-access-token')
+    const refreshToken = localStorage.getItem('sb-refresh-token')
+
+    if (accessToken && refreshToken) {
+      const restoreSession = async () => {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        })
+        if (error) {
+          console.error("Error restoring session:", error)
+          toast.error("Erreur lors de la restauration de la session")
+        }
+      }
+      restoreSession()
+    }
+  }, [])
 
   const { data: terrain, isLoading, error } = useQuery({
     queryKey: ["terrain-details", id],
