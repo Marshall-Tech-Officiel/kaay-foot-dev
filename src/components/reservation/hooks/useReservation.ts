@@ -2,8 +2,6 @@ import { useState } from "react"
 import { format } from "date-fns"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
-import { useNavigate } from "react-router-dom"
-import { PayTechService } from "@/services/PayTechService"
 
 interface UseReservationProps {
   terrainId: string
@@ -23,7 +21,6 @@ export function useReservation({
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedHours, setSelectedHours] = useState<number[]>([])
   const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
-  const navigate = useNavigate()
 
   const handlePayNow = async () => {
     if (!selectedDate || selectedHours.length === 0) {
@@ -77,37 +74,35 @@ export function useReservation({
         heure_debut: heureDebut,
         nombre_heures: selectedHours.length,
         montant_total: montantTotal,
-        statut: "en_cours_de_paiement"
       }
 
-      const { data: pendingReservation, error: pendingError } = await supabase
-        .from("reservations_pending")
-        .insert([{
-          ref_command: `${terrainId}_${Date.now()}`,
-          reservation_data: reservationData
-        }])
-        .select()
-        .single()
+      // Store the access token in localStorage before redirecting
+      localStorage.setItem('sb-access-token', session.access_token)
+      localStorage.setItem('sb-refresh-token', session.refresh_token)
 
-      if (pendingError) {
-        throw pendingError
+      const currentUrl = window.location.href
+      const response = await supabase.functions.invoke("create-payment", {
+        body: {
+          amount: montantTotal,
+          ref_command: terrainId,
+          terrain_name: terrain.nom,
+          reservation_date: formattedDate,
+          reservation_hours: formattedHours,
+          reservationData,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          cancel_url: currentUrl
+        }
+      })
+
+      if (response.error) {
+        throw new Error(response.error.message)
       }
 
-      const payTechService = new PayTechService({
-        apiKey: process.env.PAYTECH_API_KEY || "",
-        apiSecret: process.env.PAYTECH_API_SECRET || "",
-      })
-
-      const paymentResponse = await payTechService.initiatePayment({
-        description: `Réservation ${terrain.nom} - ${formattedDate} (${formattedHours})`,
-        amount: montantTotal,
-        currency: "XOF"
-      })
-
-      if (paymentResponse.success && paymentResponse.redirectUrl) {
-        window.location.href = paymentResponse.redirectUrl
+      if (response.data.success === 1 && response.data.redirect_url) {
+        window.location.href = response.data.redirect_url
       } else {
-        throw new Error(paymentResponse.error || "Erreur lors de l'initialisation du paiement")
+        throw new Error("Erreur lors de l'initialisation du paiement")
       }
     } catch (error) {
       console.error("Erreur lors de l'initialisation du paiement:", error)
@@ -135,12 +130,18 @@ export function useReservation({
   }
 
   const handleRequestReservation = async () => {
+    console.log("handleRequestReservation called")
+    console.log("selectedDate:", selectedDate)
+    console.log("selectedHours:", selectedHours)
+
     if (!selectedDate) {
+      console.log("No date selected")
       toast.error("Veuillez sélectionner une date")
       return
     }
 
     if (selectedHours.length === 0) {
+      console.log("No hours selected")
       toast.error("Veuillez sélectionner au moins une heure")
       return
     }
@@ -167,25 +168,31 @@ export function useReservation({
 
       const heureDebut = `${selectedHours[0].toString().padStart(2, "0")}:00:00`
       
+      const reservationData = {
+        terrain_id: terrainId,
+        reserviste_id: profile.id,
+        date_reservation: format(selectedDate, "yyyy-MM-dd"),
+        heure_debut: heureDebut,
+        nombre_heures: selectedHours.length,
+        montant_total: calculateTotalPrice(),
+        statut: "en_attente" as const
+      }
+
+      console.log("Reservation data:", reservationData)
+
       const { error: reservationError } = await supabase
         .from("reservations")
-        .insert([{
-          terrain_id: terrainId,
-          reserviste_id: profile.id,
-          date_reservation: format(selectedDate, "yyyy-MM-dd"),
-          heure_debut: heureDebut,
-          nombre_heures: selectedHours.length,
-          montant_total: calculateTotalPrice(),
-          statut: "en_attente"
-        }])
+        .insert([reservationData])
 
       if (reservationError) {
+        console.error("Reservation error:", reservationError)
         throw reservationError
       }
 
       toast.success("Demande de réservation envoyée")
       setIsReservationDialogOpen(false)
-      navigate("/reserviste/reservations")
+      setSelectedDate(undefined)
+      setSelectedHours([])
     } catch (error) {
       console.error("Erreur lors de la création de la réservation:", error)
       toast.error("Erreur lors de la création de la réservation")

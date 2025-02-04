@@ -14,6 +14,8 @@ serve(async (req) => {
   try {
     const url = new URL(req.url)
     const ref = url.searchParams.get('ref')
+    const accessToken = url.searchParams.get('access_token')
+    const refreshToken = url.searchParams.get('refresh_token')
 
     if (!ref) {
       throw new Error('Reference not found')
@@ -59,11 +61,15 @@ serve(async (req) => {
       .delete()
       .eq('ref_command', ref)
 
-    // Redirect to the reservations page
+    // Set the auth session cookie before redirecting
+    const cookieStr = `sb-access-token=${accessToken}; path=/; max-age=3600; sb-refresh-token=${refreshToken}; path=/; max-age=3600;`
+
+    // Redirect to the reservations page with proper path and maintain session
     return new Response(null, {
       headers: {
         ...corsHeaders,
-        'Location': '/reserviste/reservations'
+        'Location': '/reserviste/reservations',
+        'Set-Cookie': cookieStr
       },
       status: 302
     })

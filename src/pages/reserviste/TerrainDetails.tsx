@@ -9,10 +9,11 @@ import { TerrainRating } from "@/components/terrain/TerrainRating"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
-import { toast } from "sonner"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function TerrainDetails() {
   const { id } = useParams()
+  const { toast } = useToast()
 
   const { data: terrain, isLoading, error } = useQuery({
     queryKey: ["terrain-details", id],
@@ -42,13 +43,15 @@ export default function TerrainDetails() {
       return data
     },
     enabled: !!id,
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
   if (error) {
     console.error("Query error:", error)
-    toast.error("Impossible de charger les détails du terrain. Veuillez réessayer plus tard.")
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Impossible de charger les détails du terrain. Veuillez réessayer plus tard.",
+    })
     return (
       <MainLayout>
         <div className="container mx-auto py-6">
