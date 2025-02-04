@@ -3,6 +3,7 @@ import { format } from "date-fns"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 import { useNavigate } from "react-router-dom"
+import { PayTechService } from "@/services/PayTechService"
 
 interface UseReservationProps {
   terrainId: string
@@ -79,7 +80,6 @@ export function useReservation({
         statut: "en_cours_de_paiement"
       }
 
-      // Store the reservation data in the pending table
       const { data: pendingReservation, error: pendingError } = await supabase
         .from("reservations_pending")
         .insert([{
@@ -93,26 +93,21 @@ export function useReservation({
         throw pendingError
       }
 
-      const response = await supabase.functions.invoke("create-payment", {
-        body: {
-          amount: montantTotal,
-          ref_command: pendingReservation.ref_command,
-          terrain_name: terrain.nom,
-          reservation_date: formattedDate,
-          reservation_hours: formattedHours,
-          reservationData,
-          cancel_url: window.location.href
-        }
+      const payTechService = new PayTechService({
+        apiKey: process.env.PAYTECH_API_KEY || "",
+        apiSecret: process.env.PAYTECH_API_SECRET || "",
       })
 
-      if (response.error) {
-        throw new Error(response.error.message)
-      }
+      const paymentResponse = await payTechService.initiatePayment({
+        description: `Réservation ${terrain.nom} - ${formattedDate} (${formattedHours})`,
+        amount: montantTotal,
+        currency: "XOF"
+      })
 
-      if (response.data.success === 1 && response.data.redirect_url) {
-        window.location.href = response.data.redirect_url
+      if (paymentResponse.success && paymentResponse.redirectUrl) {
+        window.location.href = paymentResponse.redirectUrl
       } else {
-        throw new Error("Erreur lors de l'initialisation du paiement")
+        throw new Error(paymentResponse.error || "Erreur lors de l'initialisation du paiement")
       }
     } catch (error) {
       console.error("Erreur lors de l'initialisation du paiement:", error)

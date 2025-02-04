@@ -50,14 +50,19 @@ serve(async (req) => {
       cancel_url
     })
 
-    const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
+    const description = `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`
     
-    const params = {
-      item_name: `Réservation ${terrain_name}`,
+    const payTechConfig = {
+      apiKey: Deno.env.get("PAYTECH_API_KEY") || "",
+      apiSecret: Deno.env.get("PAYTECH_API_SECRET") || "",
+    }
+
+    const requestBody = {
+      item_name: description,
       item_price: amount,
       currency: "XOF",
       ref_command: ref_command,
-      command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
+      command_name: description,
       env: "test",
       ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
       success_url: `${req.headers.get("origin")}/reserviste/reservations`,
@@ -68,19 +73,17 @@ serve(async (req) => {
       })
     }
 
-    const headers = {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-      "API_KEY": Deno.env.get("PAYTECH_API_KEY") || "",
-      "API_SECRET": Deno.env.get("PAYTECH_API_SECRET") || "",
-    }
+    console.log("PayTech request params:", requestBody)
 
-    console.log("PayTech request params:", params)
-
-    const response = await fetch(paymentRequestUrl, {
+    const response = await fetch("https://paytech.sn/api/payment/request-payment", {
       method: "POST",
-      headers,
-      body: JSON.stringify(params)
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "API_KEY": payTechConfig.apiKey,
+        "API_SECRET": payTechConfig.apiSecret,
+      },
+      body: JSON.stringify(requestBody)
     })
 
     const data = await response.json()
