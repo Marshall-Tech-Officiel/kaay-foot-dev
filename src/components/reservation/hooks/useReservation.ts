@@ -93,12 +93,6 @@ export function useReservation({
         throw pendingError
       }
 
-      // Store the session in localStorage before opening PayTech
-      localStorage.setItem('kaayfoot_auth', JSON.stringify({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      }))
-
       const response = await supabase.functions.invoke("create-payment", {
         body: {
           amount: montantTotal,
@@ -116,63 +110,7 @@ export function useReservation({
       }
 
       if (response.data.success === 1 && response.data.redirect_url) {
-        // Ouvrir PayTech dans un nouvel onglet
-        const paymentWindow = window.open(response.data.redirect_url, '_blank')
-        
-        // Fermer le dialog de réservation
-        setIsReservationDialogOpen(false)
-
-        // Vérifier périodiquement le statut du paiement
-        const checkPaymentStatus = setInterval(async () => {
-          try {
-            // Récupérer la session stockée
-            const storedSession = localStorage.getItem('kaayfoot_auth')
-            if (!storedSession) {
-              console.error("No stored session found")
-              return
-            }
-
-            const { access_token, refresh_token } = JSON.parse(storedSession)
-            
-            // Réinitialiser la session
-            await supabase.auth.setSession({
-              access_token,
-              refresh_token
-            })
-
-            const { data: reservation } = await supabase
-              .from("reservations")
-              .select("statut")
-              .eq("ref_command", pendingReservation.ref_command)
-              .single()
-
-            if (reservation?.statut === "validee") {
-              clearInterval(checkPaymentStatus)
-              if (paymentWindow) {
-                paymentWindow.close()
-              }
-              // Nettoyer la session stockée
-              localStorage.removeItem('kaayfoot_auth')
-              navigate('/reserviste/reservations')
-              toast.success("Paiement effectué avec succès")
-            }
-          } catch (error) {
-            console.error("Error checking payment status:", error)
-          }
-        }, 5000)
-
-        // Nettoyer l'intervalle si la fenêtre est fermée
-        const cleanup = () => {
-          clearInterval(checkPaymentStatus)
-          localStorage.removeItem('kaayfoot_auth')
-        }
-
-        window.addEventListener('beforeunload', cleanup)
-        return () => {
-          window.removeEventListener('beforeunload', cleanup)
-          clearInterval(checkPaymentStatus)
-          localStorage.removeItem('kaayfoot_auth')
-        }
+        window.location.href = response.data.redirect_url
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
       }
