@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { format } from "date-fns"
 import { supabase } from "@/integrations/supabase/client"
@@ -79,6 +80,12 @@ export function useReservation({
         statut: "en_cours_de_paiement"
       }
 
+      const returnUrl = `${window.location.origin}/reserviste/reservations`
+      const currentUrl = window.location.href
+
+      // Store the current URL in localStorage
+      localStorage.setItem('reservation_return_url', currentUrl)
+
       // Store the reservation data in the pending table
       const { data: pendingReservation, error: pendingError } = await supabase
         .from("reservations_pending")
@@ -101,7 +108,8 @@ export function useReservation({
           reservation_date: formattedDate,
           reservation_hours: formattedHours,
           reservationData,
-          cancel_url: window.location.href
+          cancel_url: currentUrl,
+          success_url: returnUrl
         }
       })
 
@@ -110,7 +118,8 @@ export function useReservation({
       }
 
       if (response.data.success === 1 && response.data.redirect_url) {
-        window.location.href = response.data.redirect_url
+        // Open PayTech in a new tab
+        window.open(response.data.redirect_url, '_blank')
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
       }
