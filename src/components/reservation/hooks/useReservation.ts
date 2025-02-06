@@ -93,10 +93,6 @@ export function useReservation({
         throw pendingError
       }
 
-      // Store current URL for redirection after payment
-      const currentUrl = window.location.href
-      localStorage.setItem('reservation_return_url', currentUrl)
-
       const response = await supabase.functions.invoke("create-payment", {
         body: {
           amount: montantTotal,
@@ -105,7 +101,7 @@ export function useReservation({
           reservation_date: formattedDate,
           reservation_hours: formattedHours,
           reservationData,
-          cancel_url: currentUrl
+          cancel_url: window.location.href
         }
       })
 
@@ -114,8 +110,7 @@ export function useReservation({
       }
 
       if (response.data.success === 1 && response.data.redirect_url) {
-        // Open PayTech in a new tab
-        window.open(response.data.redirect_url, '_blank')
+        window.location.href = response.data.redirect_url
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
       }

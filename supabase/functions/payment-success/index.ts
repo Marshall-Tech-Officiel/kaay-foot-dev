@@ -59,27 +59,13 @@ serve(async (req) => {
       .delete()
       .eq('ref_command', ref)
 
-    // Return HTML that closes the window and redirects the parent
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Paiement réussi</title>
-        </head>
-        <body>
-          <script>
-            window.opener.location.href = '/reserviste/reservations';
-            window.close();
-          </script>
-        </body>
-      </html>
-    `
-
-    return new Response(html, {
+    // Redirect to the reservations page
+    return new Response(null, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'text/html',
+        'Location': '/reserviste/reservations'
       },
+      status: 302
     })
   } catch (error) {
     console.error("Error processing successful payment:", error)
