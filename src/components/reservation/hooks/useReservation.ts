@@ -100,18 +100,16 @@ export function useReservation({
           terrain_name: terrain.nom,
           reservation_date: formattedDate,
           reservation_hours: formattedHours,
-          
           reservationData,
-          cancel_url: "google.com"
+          cancel_url: window.location.href
         }
       })
 
       if (response.error) {
         throw new Error(response.error.message)
       }
-  
+
       if (response.data.success === 1 && response.data.redirect_url) {
-        console.log(response.data.redirect_url)
         window.location.href = response.data.redirect_url
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
