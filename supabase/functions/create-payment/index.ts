@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,7 +59,7 @@ serve(async (req) => {
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "test",
       ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
-      success_url: `${req.headers.get("origin")}/reserviste/reservations`,
+      success_url: `${req.headers.get("origin")}/payment/success`,
       cancel_url: cancel_url,
       custom_field: JSON.stringify({
         ref_command,

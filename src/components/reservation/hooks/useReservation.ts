@@ -110,7 +110,20 @@ export function useReservation({
       }
 
       if (response.data.success === 1 && response.data.redirect_url) {
-        window.location.href = response.data.redirect_url
+        // Ouvrir PayTech dans un nouvel onglet
+        window.open(response.data.redirect_url, '_blank')
+        
+        // Fermer le dialog de réservation
+        setIsReservationDialogOpen(false)
+        
+        // Écouter les messages de l'onglet PayTech
+        window.addEventListener('message', async (event) => {
+          if (event.data.type === 'PAYTECH_PAYMENT_SUCCESS') {
+            // Rediriger vers la page des réservations
+            navigate('/reserviste/reservations')
+            toast.success("Paiement effectué avec succès")
+          }
+        })
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
       }
