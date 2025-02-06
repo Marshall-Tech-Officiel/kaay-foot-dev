@@ -125,6 +125,21 @@ export function useReservation({
         // Vérifier périodiquement le statut du paiement
         const checkPaymentStatus = setInterval(async () => {
           try {
+            // Récupérer la session stockée
+            const storedSession = localStorage.getItem('kaayfoot_auth')
+            if (!storedSession) {
+              console.error("No stored session found")
+              return
+            }
+
+            const { access_token, refresh_token } = JSON.parse(storedSession)
+            
+            // Réinitialiser la session
+            await supabase.auth.setSession({
+              access_token,
+              refresh_token
+            })
+
             const { data: reservation } = await supabase
               .from("reservations")
               .select("statut")
@@ -136,23 +151,27 @@ export function useReservation({
               if (paymentWindow) {
                 paymentWindow.close()
               }
+              // Nettoyer la session stockée
+              localStorage.removeItem('kaayfoot_auth')
               navigate('/reserviste/reservations')
               toast.success("Paiement effectué avec succès")
             }
           } catch (error) {
             console.error("Error checking payment status:", error)
           }
-        }, 5000) // Vérifier toutes les 5 secondes
+        }, 5000)
 
         // Nettoyer l'intervalle si la fenêtre est fermée
         const cleanup = () => {
           clearInterval(checkPaymentStatus)
+          localStorage.removeItem('kaayfoot_auth')
         }
 
         window.addEventListener('beforeunload', cleanup)
         return () => {
           window.removeEventListener('beforeunload', cleanup)
           clearInterval(checkPaymentStatus)
+          localStorage.removeItem('kaayfoot_auth')
         }
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
