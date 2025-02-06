@@ -5,27 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface PaymentRequest {
-  amount: number
-  ref_command: string
-  terrain_name: string
-  reservation_date: string
-  reservation_hours: string
-  reservationData: {
-    terrain_id: string
-    reserviste_id: string
-    date_reservation: string
-    heure_debut: string
-    nombre_heures: number
-    montant_total: number
-    statut: string
-  }
-  cancel_url: string
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -34,78 +16,60 @@ serve(async (req) => {
       ref_command, 
       terrain_name, 
       reservation_date, 
-      reservation_hours, 
-      reservationData,
-      cancel_url
-    } = await req.json() as PaymentRequest
-
-    console.log("Payment request received:", {
-      amount,
-      ref_command,
-      terrain_name,
-      reservation_date,
       reservation_hours,
-      reservationData,
-      cancel_url
-    })
+      cancel_url 
+    } = await req.json()
 
-    const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
-    
-    const params = {
-      item_name: `Réservation ${terrain_name}`,
-      item_price: amount,
-      currency: "XOF",
-      ref_command: ref_command,
-      command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
-      env: "test",
-      ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
-      success_url: `${req.headers.get("origin")}/payment/success`,
-      cancel_url: cancel_url,
-      custom_field: JSON.stringify({
+    const PAYTECH_API_KEY = Deno.env.get('PAYTECH_API_KEY')
+    const PAYTECH_API_SECRET = Deno.env.get('PAYTECH_API_SECRET')
+
+    if (!PAYTECH_API_KEY || !PAYTECH_API_SECRET) {
+      throw new Error('PayTech credentials not configured')
+    }
+
+    const response = await fetch('https://paytech.sn/api/payment/request-payment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'API_KEY': PAYTECH_API_KEY,
+        'API_SECRET': PAYTECH_API_SECRET,
+      },
+      body: JSON.stringify({
+        item_name: `Réservation ${terrain_name}`,
+        item_price: amount,
+        currency: 'XOF',
         ref_command,
-        reservationData
+        command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
+        env: "test",
+        ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
+        success_url: `${req.headers.get("origin")}/payment/success`,
+        cancel_url: cancel_url,
+        custom_field: JSON.stringify({
+          ref_command,
+          timestamp: Date.now()
+        })
       })
-    }
-
-    const headers = {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-      "API_KEY": Deno.env.get("PAYTECH_API_KEY") || "",
-      "API_SECRET": Deno.env.get("PAYTECH_API_SECRET") || "",
-    }
-
-    console.log("PayTech request params:", params)
-
-    const response = await fetch(paymentRequestUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(params)
     })
 
     const data = await response.json()
-    console.log("PayTech response:", data)
-
-    if (!response.ok) {
-      console.error("PayTech error response:", data)
-      throw new Error(`PayTech error: ${JSON.stringify(data)}`)
-    }
 
     return new Response(
       JSON.stringify(data),
       { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        } 
       }
     )
   } catch (error) {
-    console.error("Error processing payment request:", error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: "Erreur lors de la communication avec PayTech"
-      }),
+      JSON.stringify({ error: error.message }),
       { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        },
         status: 400
       }
     )

@@ -93,6 +93,12 @@ export function useReservation({
         throw pendingError
       }
 
+      // Store the session in localStorage before opening PayTech
+      localStorage.setItem('kaayfoot_auth', JSON.stringify({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      }))
+
       const response = await supabase.functions.invoke("create-payment", {
         body: {
           amount: montantTotal,
@@ -111,19 +117,43 @@ export function useReservation({
 
       if (response.data.success === 1 && response.data.redirect_url) {
         // Ouvrir PayTech dans un nouvel onglet
-        window.open(response.data.redirect_url, '_blank')
+        const paymentWindow = window.open(response.data.redirect_url, '_blank')
         
         // Fermer le dialog de réservation
         setIsReservationDialogOpen(false)
-        
-        // Écouter les messages de l'onglet PayTech
-        window.addEventListener('message', async (event) => {
-          if (event.data.type === 'PAYTECH_PAYMENT_SUCCESS') {
-            // Rediriger vers la page des réservations
-            navigate('/reserviste/reservations')
-            toast.success("Paiement effectué avec succès")
+
+        // Vérifier périodiquement le statut du paiement
+        const checkPaymentStatus = setInterval(async () => {
+          try {
+            const { data: reservation } = await supabase
+              .from("reservations")
+              .select("statut")
+              .eq("ref_command", pendingReservation.ref_command)
+              .single()
+
+            if (reservation?.statut === "validee") {
+              clearInterval(checkPaymentStatus)
+              if (paymentWindow) {
+                paymentWindow.close()
+              }
+              navigate('/reserviste/reservations')
+              toast.success("Paiement effectué avec succès")
+            }
+          } catch (error) {
+            console.error("Error checking payment status:", error)
           }
-        })
+        }, 5000) // Vérifier toutes les 5 secondes
+
+        // Nettoyer l'intervalle si la fenêtre est fermée
+        const cleanup = () => {
+          clearInterval(checkPaymentStatus)
+        }
+
+        window.addEventListener('beforeunload', cleanup)
+        return () => {
+          window.removeEventListener('beforeunload', cleanup)
+          clearInterval(checkPaymentStatus)
+        }
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
       }
