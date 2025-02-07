@@ -66,6 +66,10 @@ export function useAuth() {
           setRole("")
           queryClient.clear()
           navigate('/login')
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          setUser(session.user)
+          await fetchUserRole(session.user.id)
+          await queryClient.invalidateQueries()
         } else if (session?.user) {
           setUser(session.user)
           await fetchUserRole(session.user.id)

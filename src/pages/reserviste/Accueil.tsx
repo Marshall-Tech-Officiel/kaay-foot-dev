@@ -15,9 +15,8 @@ export default function ReservisteAccueil() {
   const { data: terrains, isLoading: terrainsLoading } = useQuery({
     queryKey: ["terrains-public"],
     queryFn: async () => {
-      if (!user) {
-        throw new Error("User not authenticated")
-      }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error("No session")
 
       const { data, error } = await supabase
         .from("terrains")
@@ -40,9 +39,8 @@ export default function ReservisteAccueil() {
           : 0
       })).sort((a, b) => b.averageRating - a.averageRating)
     },
-    enabled: !!user && !authLoading,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
+    enabled: !authLoading,
+    retry: 3
   })
 
   const filteredTerrains = terrains?.filter(terrain => 
