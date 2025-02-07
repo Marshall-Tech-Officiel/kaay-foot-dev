@@ -6,13 +6,22 @@ import { TerrainCard } from "@/components/terrain/TerrainCard"
 import { Search } from "@/components/ui/search"
 import { supabase } from "@/integrations/supabase/client"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+import { useNavigate } from "react-router-dom"
 
 export default function ReservisteAccueil() {
   const [searchTerm, setSearchTerm] = useState("")
+  const { user, isLoading: authLoading } = useAuth()
+  const navigate = useNavigate()
 
-  const { data: terrains, isLoading } = useQuery({
+  const { data: terrains, isLoading: terrainsLoading } = useQuery({
     queryKey: ["terrains-public"],
     queryFn: async () => {
+      if (!user) {
+        navigate('/login')
+        return []
+      }
+
       const { data, error } = await supabase
         .from("terrains")
         .select(`
@@ -35,13 +44,22 @@ export default function ReservisteAccueil() {
     },
     retry: 1,
     staleTime: 30000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    enabled: !authLoading && !!user // Only run query when auth is loaded and user exists
   })
 
   const filteredTerrains = terrains?.filter(terrain => 
     [terrain.nom, terrain.zone?.nom, terrain.region?.nom]
       .some(value => value?.toLowerCase().includes(searchTerm.toLowerCase()))
   ) ?? []
+
+  const isLoading = authLoading || terrainsLoading
+
+  // If auth is not loading and there's no user, redirect to login
+  if (!authLoading && !user) {
+    navigate('/login')
+    return null
+  }
 
   return (
     <MainLayout>
