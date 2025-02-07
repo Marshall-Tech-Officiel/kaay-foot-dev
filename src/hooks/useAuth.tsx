@@ -19,9 +19,7 @@ export function useAuth() {
         .eq("user_id", userId)
         .single()
 
-      if (error) throw error
-      if (!data) throw new Error("No role found for user")
-      
+      if (error || !data) throw error || new Error("No role found")
       setRole(data.role)
     } catch (error) {
       console.error("Error in fetchUserRole:", error)
@@ -30,11 +28,13 @@ export function useAuth() {
   }
 
   useEffect(() => {
+    let mounted = true
+    
     const initializeAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        const { data: { session } } = await supabase.auth.getSession()
         
-        if (sessionError) throw sessionError
+        if (!mounted) return
         
         if (session?.user) {
           setUser(session.user)
@@ -42,15 +42,14 @@ export function useAuth() {
         } else {
           setUser(null)
           setRole("")
-          navigate('/login')
         }
       } catch (error) {
+        if (!mounted) return
         console.error("Error initializing auth:", error)
         setUser(null)
         setRole("")
-        navigate('/login')
       } finally {
-        setIsLoading(false)
+        if (mounted) setIsLoading(false)
       }
     }
 
@@ -58,28 +57,32 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id)
-        setIsLoading(true)
+        if (!mounted) return
         
-        if (event === 'SIGNED_OUT' || !session) {
+        try {
+          if (event === 'SIGNED_OUT' || !session) {
+            setUser(null)
+            setRole("")
+            queryClient.clear()
+          } else if (session?.user) {
+            setUser(session.user)
+            await fetchUserRole(session.user.id)
+          }
+        } catch (error) {
+          console.error("Auth state change error:", error)
           setUser(null)
           setRole("")
-          queryClient.clear()
-          navigate('/login')
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          setUser(session.user)
-          await fetchUserRole(session.user.id)
-          await queryClient.invalidateQueries()
-        } else if (session?.user) {
-          setUser(session.user)
-          await fetchUserRole(session.user.id)
+        } finally {
+          if (mounted) setIsLoading(false)
         }
-        setIsLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
-  }, [navigate])
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   return { user, role, isLoading }
 }
