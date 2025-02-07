@@ -15,8 +15,7 @@ export default function ReservisteAccueil() {
   const { data: terrains, isLoading: terrainsLoading } = useQuery({
     queryKey: ["terrains-public", user?.id],
     queryFn: async () => {
-      // Wait for auth to stabilize
-      await new Promise(resolve => setTimeout(resolve, 500))
+      if (!user) throw new Error("User not authenticated")
       
       const { data, error } = await supabase
         .from("terrains")
@@ -40,7 +39,8 @@ export default function ReservisteAccueil() {
     },
     enabled: !!user?.id && !authLoading,
     retry: 3,
-    retryDelay: 1000
+    retryDelay: 1000,
+    refetchInterval: 30000 // Refetch every 30 seconds
   })
 
   const filteredTerrains = terrains?.filter(terrain => 
