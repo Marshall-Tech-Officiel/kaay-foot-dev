@@ -38,7 +38,6 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: true,
-      placeholderData: (previousData) => previousData
     },
   },
 })
@@ -57,42 +56,42 @@ export default function App() {
           <Route path="/404" element={<Error404 />} />
 
           {/* Admin routes */}
-          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/terrains" element={<AdminTerrains />} />
-            <Route path="/admin/proprietaires" element={<AdminProprietaires />} />
-            <Route path="/admin/profil" element={<AdminProfil />} />
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]} />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="terrains" element={<AdminTerrains />} />
+            <Route path="proprietaires" element={<AdminProprietaires />} />
+            <Route path="profil" element={<AdminProfil />} />
           </Route>
 
           {/* Proprietaire routes */}
-          <Route element={<ProtectedRoute allowedRoles={["proprietaire"]} />}>
-            <Route path="/proprietaire" element={<Navigate to="/proprietaire/dashboard" replace />} />
-            <Route path="/proprietaire/dashboard" element={<ProprietaireDashboard />} />
-            <Route path="/proprietaire/terrains" element={<ProprietaireTerrains />} />
-            <Route path="/proprietaire/terrains/:id" element={<ProprietaireTerrainDetails />} />
-            <Route path="/proprietaire/gerants" element={<ProprietaireGerants />} />
-            <Route path="/proprietaire/reservations" element={<ProprietaireReservations />} />
-            <Route path="/proprietaire/profil" element={<ProprietaireProfil />} />
+          <Route path="/proprietaire" element={<ProtectedRoute allowedRoles={["proprietaire"]} />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<ProprietaireDashboard />} />
+            <Route path="terrains" element={<ProprietaireTerrains />} />
+            <Route path="terrains/:id" element={<ProprietaireTerrainDetails />} />
+            <Route path="gerants" element={<ProprietaireGerants />} />
+            <Route path="reservations" element={<ProprietaireReservations />} />
+            <Route path="profil" element={<ProprietaireProfil />} />
           </Route>
 
           {/* Gerant routes */}
-          <Route element={<ProtectedRoute allowedRoles={["gerant"]} />}>
-            <Route path="/gerant" element={<Navigate to="/gerant/dashboard" replace />} />
-            <Route path="/gerant/dashboard" element={<GerantDashboard />} />
-            <Route path="/gerant/terrains" element={<GerantTerrains />} />
-            <Route path="/gerant/terrains/:id" element={<GerantTerrainDetails />} />
-            <Route path="/gerant/reservations" element={<GerantReservations />} />
-            <Route path="/gerant/profil" element={<GerantProfil />} />
+          <Route path="/gerant" element={<ProtectedRoute allowedRoles={["gerant"]} />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<GerantDashboard />} />
+            <Route path="terrains" element={<GerantTerrains />} />
+            <Route path="terrains/:id" element={<GerantTerrainDetails />} />
+            <Route path="reservations" element={<GerantReservations />} />
+            <Route path="profil" element={<GerantProfil />} />
           </Route>
 
           {/* Reserviste routes */}
-          <Route element={<ProtectedRoute allowedRoles={["reserviste"]} />}>
-            <Route path="/reserviste" element={<Navigate to="/reserviste/accueil" replace />} />
-            <Route path="/reserviste/accueil" element={<ReservisteAccueil />} />
-            <Route path="/reserviste/reservations" element={<ReservisteReservations />} />
-            <Route path="/reserviste/profil" element={<ReservisteProfil />} />
-            <Route path="/reserviste/terrain/:id" element={<TerrainDetails />} />
+          <Route path="/reserviste" element={<ProtectedRoute allowedRoles={["reserviste"]} />}>
+            <Route index element={<Navigate to="accueil" replace />} />
+            <Route path="accueil" element={<ReservisteAccueil />} />
+            <Route path="reservations" element={<ReservisteReservations />} />
+            <Route path="profil" element={<ReservisteProfil />} />
+            <Route path="terrain/:id" element={<TerrainDetails />} />
           </Route>
 
           {/* Catch all route - redirect to 404 */}

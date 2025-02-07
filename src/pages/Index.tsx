@@ -1,40 +1,8 @@
-
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
-import { supabase } from "@/integrations/supabase/client"
-import { Loader2 } from "lucide-react"
 
 export default function Index() {
   const navigate = useNavigate()
-
-  const { data: terrains, isLoading } = useQuery({
-    queryKey: ["terrains-public"],
-    queryFn: async () => {
-      console.log("Fetching terrains data...")
-      const { data: terrainsWithRatings, error } = await supabase
-        .from("terrains")
-        .select(`
-          *,
-          zone:zones(nom),
-          region:regions(nom),
-          photos:photos_terrain(url),
-          terrain_ratings(rating)
-        `)
-
-      if (error) {
-        console.error("Error fetching terrains:", error)
-        throw error
-      }
-
-      console.log("Terrains data received:", terrainsWithRatings)
-      return terrainsWithRatings
-    },
-    initialData: [],
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E0F2E9] to-[#CDE9E0]">
@@ -71,36 +39,6 @@ export default function Index() {
               Se connecter
             </Button>
           </div>
-        </div>
-
-        {/* Terrains Preview Section */}
-        <div className="p-8">
-          <h3 className="text-2xl font-semibold mb-6 text-center">Terrains disponibles</h3>
-          {isLoading ? (
-            <div className="flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-            </div>
-          ) : terrains && terrains.length > 0 ? (
-            <div className="grid md:grid-cols-3 gap-8">
-              {terrains.slice(0, 3).map((terrain) => (
-                <div key={terrain.id} className="bg-white p-6 rounded-lg shadow-md">
-                  {terrain.photos && terrain.photos[0] && (
-                    <img
-                      src={terrain.photos[0].url}
-                      alt={terrain.nom}
-                      className="w-full h-48 object-cover rounded-md mb-4"
-                    />
-                  )}
-                  <h4 className="text-xl font-semibold mb-2">{terrain.nom}</h4>
-                  <p className="text-gray-600">
-                    {terrain.zone?.nom}, {terrain.region?.nom}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-gray-600">Aucun terrain disponible pour le moment</p>
-          )}
         </div>
 
         {/* Features Section */}
