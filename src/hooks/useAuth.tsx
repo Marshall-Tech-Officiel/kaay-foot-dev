@@ -2,11 +2,14 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { User } from "@supabase/supabase-js"
+import { useNavigate } from "react-router-dom"
+import { queryClient } from "@/lib/react-query"
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [role, setRole] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
+  const navigate = useNavigate()
 
   const fetchUserRole = async (userId: string) => {
     try {
@@ -39,11 +42,13 @@ export function useAuth() {
         } else {
           setUser(null)
           setRole("")
+          navigate('/login')
         }
       } catch (error) {
         console.error("Error initializing auth:", error)
         setUser(null)
         setRole("")
+        navigate('/login')
       } finally {
         setIsLoading(false)
       }
@@ -53,27 +58,24 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id)
         setIsLoading(true)
-        try {
-          if (event === 'SIGNED_OUT') {
-            setUser(null)
-            setRole("")
-          } else if (session?.user) {
-            setUser(session.user)
-            await fetchUserRole(session.user.id)
-          }
-        } catch (error) {
-          console.error("Error in auth state change:", error)
+        
+        if (event === 'SIGNED_OUT' || !session) {
           setUser(null)
           setRole("")
-        } finally {
-          setIsLoading(false)
+          queryClient.clear()
+          navigate('/login')
+        } else if (session?.user) {
+          setUser(session.user)
+          await fetchUserRole(session.user.id)
         }
+        setIsLoading(false)
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [navigate])
 
   return { user, role, isLoading }
 }

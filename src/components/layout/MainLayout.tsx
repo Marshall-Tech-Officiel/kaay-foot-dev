@@ -1,9 +1,11 @@
+
 import { useState } from "react"
 import { Menu } from "lucide-react"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useAuth } from "@/hooks/useAuth"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -11,16 +13,23 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
 
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        {/* Desktop Sidebar */}
         <div className="hidden md:block">
           <AppSidebar />
         </div>
 
-        {/* Mobile Menu */}
         <div className="fixed top-4 left-4 z-50 md:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>

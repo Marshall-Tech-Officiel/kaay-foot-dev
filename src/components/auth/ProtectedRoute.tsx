@@ -1,5 +1,7 @@
+
 import { Navigate, Outlet } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
+import { Loader2 } from "lucide-react"
 
 interface ProtectedRouteProps {
   allowedRoles: string[]
@@ -8,9 +10,12 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { user, role, isLoading } = useAuth()
 
-  // Wait for the auth state to be loaded
   if (isLoading) {
-    return null // or a loading spinner
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   if (!user) {
