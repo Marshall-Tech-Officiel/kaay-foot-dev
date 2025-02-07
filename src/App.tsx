@@ -42,7 +42,7 @@ const queryClient = new QueryClient({
       placeholderData: (previousData) => previousData, // Remplace keepPreviousData
     },
   },
-});
+})
 
 
 export default function App() {
