@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { MainLayout } from "@/components/layout/MainLayout"
@@ -12,8 +13,7 @@ export default function ReservisteAccueil() {
   const { data: terrains, isLoading } = useQuery({
     queryKey: ["terrains-public"],
     queryFn: async () => {
-      // Fetch terrains with their ratings
-      const { data: terrainsWithRatings, error } = await supabase
+      const { data, error } = await supabase
         .from("terrains")
         .select(`
           *,
@@ -22,33 +22,26 @@ export default function ReservisteAccueil() {
           photos:photos_terrain(url),
           terrain_ratings(rating)
         `)
+        .throwOnError()
 
-      if (error) throw error
+      if (!data) return []
 
-      // Calculate average rating for each terrain and sort
-      const processedTerrains = terrainsWithRatings.map(terrain => {
-        const ratings = terrain.terrain_ratings || []
-        const avgRating = ratings.length > 0
-          ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length
+      return data.map(terrain => ({
+        ...terrain,
+        averageRating: terrain.terrain_ratings?.length 
+          ? terrain.terrain_ratings.reduce((sum, r) => sum + r.rating, 0) / terrain.terrain_ratings.length
           : 0
-        return {
-          ...terrain,
-          averageRating: avgRating
-        }
-      }).sort((a, b) => b.averageRating - a.averageRating)
-
-      return processedTerrains
+      })).sort((a, b) => b.averageRating - a.averageRating)
     },
+    retry: 1,
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   })
 
-  const filteredTerrains = terrains?.filter((terrain) => {
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      terrain.nom.toLowerCase().includes(searchLower) ||
-      terrain.zone?.nom?.toLowerCase().includes(searchLower) ||
-      terrain.region?.nom?.toLowerCase().includes(searchLower)
-    )
-  })
+  const filteredTerrains = terrains?.filter(terrain => 
+    [terrain.nom, terrain.zone?.nom, terrain.region?.nom]
+      .some(value => value?.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) ?? []
 
   return (
     <MainLayout>
@@ -72,7 +65,7 @@ export default function ReservisteAccueil() {
           <div className="flex h-[200px] items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : !filteredTerrains?.length ? (
+        ) : !filteredTerrains.length ? (
           <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed">
             <p className="text-muted-foreground">
               {searchTerm
