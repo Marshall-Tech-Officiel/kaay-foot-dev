@@ -13,42 +13,44 @@ serve(async (req) => {
   }
 
   try {
-    const params = new URL(req.url).searchParams
-    const body = await req.json().catch(() => ({}))
+    const url = new URL(req.url)
+    let ref = url.searchParams.get('ref')
     
-    const ref = params.get('ref_payment') || params.get('ref') || body.ref_payment || body.ref
-
-    if (!ref) {
-      throw new Error('Reference not found in parameters or body')
+    // Extraction de la référence du format reçu
+    if (ref && ref.includes('_')) {
+      ref = ref.split('_')[0]
     }
 
-    console.log("Processing payment for ref:", ref)
+    console.log("Processing payment with ref:", ref)
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { data: pendingReservation, error } = await supabase
+    const { data: pendingReservation, error: fetchError } = await supabase
       .from('reservations_pending')
       .select('*')
       .eq('ref_command', ref)
       .single()
 
-    if (error || !pendingReservation) {
-      console.error("Error fetching pending reservation:", error)
-      throw new Error('Pending reservation not found')
+    if (fetchError || !pendingReservation) {
+      console.error("Fetch error:", fetchError)
+      throw new Error(`Pending reservation not found for ref: ${ref}`)
     }
+
+    console.log("Found pending reservation:", pendingReservation)
 
     const { error: insertError } = await supabase
       .from('reservations')
       .insert([{
         ...pendingReservation.reservation_data,
-        statut: 'validee'
+        statut: 'validee',
+        ref_paiement: ref
       }])
 
     if (insertError) {
-      console.error("Error creating final reservation:", insertError)
+      console.error("Insert error:", insertError)
       throw insertError
     }
 

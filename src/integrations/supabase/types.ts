@@ -194,6 +194,7 @@ export type Database = {
           id: string
           montant_total: number
           nombre_heures: number
+          ref_paiement: string | null
           reserviste_id: string | null
           statut: string
           terrain_id: string | null
@@ -206,6 +207,7 @@ export type Database = {
           id?: string
           montant_total: number
           nombre_heures: number
+          ref_paiement?: string | null
           reserviste_id?: string | null
           statut: string
           terrain_id?: string | null
@@ -218,6 +220,7 @@ export type Database = {
           id?: string
           montant_total?: number
           nombre_heures?: number
+          ref_paiement?: string | null
           reserviste_id?: string | null
           statut?: string
           terrain_id?: string | null
