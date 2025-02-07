@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { User } from "@supabase/supabase-js"
@@ -11,7 +12,11 @@ export function useAuth() {
     // Get initial session
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          throw sessionError
+        }
         
         if (session?.user) {
           setUser(session.user)
@@ -36,11 +41,16 @@ export function useAuth() {
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id)
         
-        if (event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           setUser(null)
           setRole("")
           setIsLoading(false)
           return
+        }
+
+        // Handle token refresh
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully')
         }
 
         if (session?.user) {
@@ -54,6 +64,7 @@ export function useAuth() {
       }
     )
 
+    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe()
     }
