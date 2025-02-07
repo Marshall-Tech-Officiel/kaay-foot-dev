@@ -19,12 +19,13 @@ export function useAuth() {
         .select("role")
         .eq("user_id", session.user.id)
         .single()
-        .then(({ data }) => {
-          setRole(data?.role || "")
-          setIsLoading(false)
-        })
-        .catch(() => {
-          setRole("")
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Error fetching user role:", error)
+            setRole("")
+          } else {
+            setRole(data?.role || "")
+          }
           setIsLoading(false)
         })
     } else {
