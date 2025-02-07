@@ -38,8 +38,7 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      refetchOnMount: true, // Recharger les données au montage du composant
-      keepPreviousData: true, // Garder les anciennes données pendant le chargement
+      refetchOnMount: true,
     },
   },
 })
