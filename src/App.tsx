@@ -38,6 +38,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: true,
+      placeholderData: (previousData) => previousData
     },
   },
 })
