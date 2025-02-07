@@ -13,11 +13,11 @@ export default function ReservisteAccueil() {
   const { user, isLoading: authLoading } = useAuth()
 
   const { data: terrains, isLoading: terrainsLoading } = useQuery({
-    queryKey: ["terrains-public"],
+    queryKey: ["terrains-public", user?.id],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error("No session")
-
+      // Wait for auth to stabilize
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       const { data, error } = await supabase
         .from("terrains")
         .select(`
@@ -29,7 +29,6 @@ export default function ReservisteAccueil() {
         `)
         .throwOnError()
 
-      if (error) throw error
       if (!data) return []
 
       return data.map(terrain => ({
@@ -39,8 +38,9 @@ export default function ReservisteAccueil() {
           : 0
       })).sort((a, b) => b.averageRating - a.averageRating)
     },
-    enabled: !authLoading,
-    retry: 3
+    enabled: !!user?.id && !authLoading,
+    retry: 3,
+    retryDelay: 1000
   })
 
   const filteredTerrains = terrains?.filter(terrain => 
