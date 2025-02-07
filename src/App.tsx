@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "sonner"
 import Index from "@/pages/Index"
@@ -29,15 +29,17 @@ import Error403 from "@/pages/Error403"
 import Error404 from "@/pages/Error404"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
 
+// Créer un client avec des options optimisées pour la persistance des données
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (anciennement cacheTime)
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      refetchOnMount: true,
+      refetchOnMount: true, // Recharger les données au montage du composant
+      keepPreviousData: true, // Garder les anciennes données pendant le chargement
     },
   },
 })
@@ -56,8 +58,7 @@ export default function App() {
           <Route path="/404" element={<Error404 />} />
 
           {/* Admin routes */}
-          <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]} />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="terrains" element={<AdminTerrains />} />
             <Route path="proprietaires" element={<AdminProprietaires />} />
@@ -65,8 +66,7 @@ export default function App() {
           </Route>
 
           {/* Proprietaire routes */}
-          <Route path="/proprietaire" element={<ProtectedRoute allowedRoles={["proprietaire"]} />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="/proprietaire/*" element={<ProtectedRoute allowedRoles={["proprietaire"]} />}>
             <Route path="dashboard" element={<ProprietaireDashboard />} />
             <Route path="terrains" element={<ProprietaireTerrains />} />
             <Route path="terrains/:id" element={<ProprietaireTerrainDetails />} />
@@ -76,8 +76,7 @@ export default function App() {
           </Route>
 
           {/* Gerant routes */}
-          <Route path="/gerant" element={<ProtectedRoute allowedRoles={["gerant"]} />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="/gerant/*" element={<ProtectedRoute allowedRoles={["gerant"]} />}>
             <Route path="dashboard" element={<GerantDashboard />} />
             <Route path="terrains" element={<GerantTerrains />} />
             <Route path="terrains/:id" element={<GerantTerrainDetails />} />
@@ -86,8 +85,7 @@ export default function App() {
           </Route>
 
           {/* Reserviste routes */}
-          <Route path="/reserviste" element={<ProtectedRoute allowedRoles={["reserviste"]} />}>
-            <Route index element={<Navigate to="accueil" replace />} />
+          <Route path="/reserviste/*" element={<ProtectedRoute allowedRoles={["reserviste"]} />}>
             <Route path="accueil" element={<ReservisteAccueil />} />
             <Route path="reservations" element={<ReservisteReservations />} />
             <Route path="profil" element={<ReservisteProfil />} />
