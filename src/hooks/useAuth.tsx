@@ -30,11 +30,15 @@ export function useAuth() {
         console.error("Error initializing auth:", error)
         setUser(null)
         setRole("")
-        // Ne pas throw l'erreur ici pour éviter de bloquer l'initialisation
       } finally {
         setIsLoading(false)
       }
     }
+
+    // Configure session handling
+    supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id)
+    })
 
     initializeAuth()
 
@@ -43,9 +47,7 @@ export function useAuth() {
       async (event, session) => {
         setIsLoading(true)
         try {
-          console.log("Auth state changed:", event, session?.user?.id)
-          
-          if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          if (event === 'SIGNED_OUT') {
             setUser(null)
             setRole("")
             return
@@ -63,7 +65,6 @@ export function useAuth() {
             setUser(session.user)
             await fetchUserRole(session.user.id)
           } else {
-            // Si pas de session, on considère que l'utilisateur n'est pas connecté
             setUser(null)
             setRole("")
           }
@@ -106,7 +107,7 @@ export function useAuth() {
     } catch (error) {
       console.error("Error in fetchUserRole:", error)
       setRole("")
-      throw error // Re-throw to be handled by le caller
+      throw error
     }
   }
 
