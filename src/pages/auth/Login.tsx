@@ -25,34 +25,29 @@ export default function Login() {
       })
 
       if (authError) throw authError
+      if (!authData.user) throw new Error("No user data returned")
 
-      if (authData.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', authData.user.id)
-          .single()
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', authData.user.id)
+        .single()
 
-        if (profileError) throw profileError
+      if (profileError) throw profileError
+      if (!profileData) throw new Error("No profile found")
 
-        // Redirection selon le rôle
-        switch (profileData.role) {
-          case 'admin':
-            navigate('/admin/dashboard')
-            break
-          case 'proprietaire':
-            navigate('/proprietaire/dashboard')
-            break
-          case 'gerant':
-            navigate('/gerant/dashboard')
-            break
-          case 'reserviste':
-            navigate('/reserviste/accueil')
-            break
-          default:
-            throw new Error('Rôle non reconnu')
-        }
+      const routes = {
+        admin: '/admin/dashboard',
+        proprietaire: '/proprietaire/dashboard',
+        gerant: '/gerant/dashboard',
+        reserviste: '/reserviste/accueil'
       }
+
+      const route = routes[profileData.role as keyof typeof routes]
+      if (!route) throw new Error('Rôle non reconnu')
+
+      await Promise.resolve()
+      navigate(route)
     } catch (error: any) {
       toast({
         variant: "destructive",

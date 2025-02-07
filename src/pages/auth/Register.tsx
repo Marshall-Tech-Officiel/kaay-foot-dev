@@ -22,14 +22,12 @@ export default function Register() {
     setIsLoading(true)
 
     try {
-      // 1. Create the user in auth.users
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       })
 
       if (authError) {
-        // Check specifically for rate limit error
         if (authError.message.includes('rate_limit')) {
           toast({
             variant: "destructive",
@@ -45,7 +43,6 @@ export default function Register() {
         throw new Error("No user ID returned from signup")
       }
 
-      // 2. Create the profile in public.profiles
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
@@ -61,7 +58,6 @@ export default function Register() {
 
       if (profileError) {
         console.error("Profile creation error:", profileError)
-        // If profile creation fails, we should clean up the auth user
         await supabase.auth.signOut()
         throw profileError
       }

@@ -58,15 +58,9 @@ export function useAuth() {
           if (event === 'SIGNED_OUT') {
             setUser(null)
             setRole("")
-            return
-          }
-
-          if (session?.user) {
+          } else if (session?.user) {
             setUser(session.user)
             await fetchUserRole(session.user.id)
-          } else {
-            setUser(null)
-            setRole("")
           }
         } catch (error) {
           console.error("Error in auth state change:", error)
