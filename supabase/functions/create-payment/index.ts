@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -59,8 +60,8 @@ serve(async (req) => {
       ref_command: ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "test",
-      ipn_url: `${req.headers.get("origin")}/api/paytech-webhook`,
-      success_url: `${req.headers.get("origin")}/reserviste/reservations`,
+      ipn_url: `${req.headers.get("origin")}/functions/paytech-webhook`,
+      success_url: `${req.headers.get("origin")}/functions/payment-success?ref=${ref_command}`,
       cancel_url: cancel_url,
       custom_field: JSON.stringify({
         ref_command,

@@ -13,22 +13,25 @@ serve(async (req) => {
   }
 
   try {
-    const params = new URL(req.url).searchParams
-    const body = await req.json().catch(() => ({}))
-    
-    const ref = params.get('ref_payment') || params.get('ref') || body.ref_payment || body.ref
+    const body = await req.json()
+    console.log("PayTech webhook received:", body)
 
-    if (!ref) {
-      throw new Error('Reference not found in parameters or body')
+    // Vérifier que le paiement est bien réussi
+    if (body.type_event !== 'success') {
+      throw new Error('Payment not successful')
     }
 
-    console.log("Processing payment for ref:", ref)
+    const ref = body.ref_command || body.custom_field?.ref_command
+    if (!ref) {
+      throw new Error('Reference not found in webhook data')
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Vérifier si la réservation existe toujours
     const { data: pendingReservation, error } = await supabase
       .from('reservations_pending')
       .select('*')
@@ -40,6 +43,7 @@ serve(async (req) => {
       throw new Error('Pending reservation not found')
     }
 
+    // Créer la réservation finale
     const { error: insertError } = await supabase
       .from('reservations')
       .insert([{
@@ -52,23 +56,11 @@ serve(async (req) => {
       throw insertError
     }
 
+    // Nettoyer la réservation en attente
     await supabase
       .from('reservations_pending')
       .delete()
       .eq('ref_command', ref)
-
-    // Rediriger vers la page des réservations si c'est une requête du navigateur
-    const isNavigator = req.headers.get('accept')?.includes('text/html')
-    
-    if (isNavigator) {
-      return new Response(null, {
-        headers: {
-          ...corsHeaders,
-          'Location': '/reserviste/reservations'
-        },
-        status: 302
-      })
-    }
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -78,7 +70,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error("Payment processing error:", error)
+    console.error("PayTech webhook error:", error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
