@@ -13,11 +13,13 @@ export function useAuth() {
 
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log("Fetching role for user:", userId)
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
         .eq("user_id", userId)
         .single()
+      console.log("Role fetch result:", { data, error })
 
       if (error || !data) throw error || new Error("No role found")
       setRole(data.role)
@@ -32,23 +34,42 @@ export function useAuth() {
     
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        console.log("1. Starting auth init...")
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log("2. Session:", session)
         
-        if (!mounted) return
+        if (!mounted) {
+          console.log("Component unmounted, stopping initialization")
+          return
+        }
         
         if (session?.user) {
+          console.log("3. User found:", session.user.id)
           setUser(session.user)
-          await fetchUserRole(session.user.id)
+          
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .single()
+          console.log("4. Profile data:", data, "Error:", error)
+          
+          if (data?.role) {
+            console.log("5. Setting role:", data.role)
+            setRole(data.role)
+          }
         } else {
+          console.log("No session found")
           setUser(null)
           setRole("")
         }
       } catch (error) {
+        console.error("6. Auth error:", error)
         if (!mounted) return
-        console.error("Error initializing auth:", error)
         setUser(null)
         setRole("")
       } finally {
+        console.log("7. Setting isLoading false")
         if (mounted) setIsLoading(false)
       }
     }
@@ -57,14 +78,20 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return
+        console.log("Auth state changed:", event, session?.user?.id)
+        if (!mounted) {
+          console.log("Component unmounted, ignoring auth change")
+          return
+        }
         
         try {
           if (event === 'SIGNED_OUT' || !session) {
+            console.log("User signed out or no session")
             setUser(null)
             setRole("")
             queryClient.clear()
           } else if (session?.user) {
+            console.log("Session user found:", session.user.id)
             setUser(session.user)
             await fetchUserRole(session.user.id)
           }
@@ -79,6 +106,7 @@ export function useAuth() {
     )
 
     return () => {
+      console.log("Cleaning up auth effect")
       mounted = false
       subscription.unsubscribe()
     }
