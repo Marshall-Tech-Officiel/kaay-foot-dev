@@ -24,12 +24,12 @@ export function useAuth() {
         } else {
           setUser(null)
           setRole("")
-          setIsLoading(false)
         }
       } catch (error) {
         console.error("Error initializing auth:", error)
         setUser(null)
         setRole("")
+      } finally {
         setIsLoading(false)
       }
     }
@@ -39,26 +39,33 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id)
-        
-        if (event === 'SIGNED_OUT') {
+        setIsLoading(true)
+        try {
+          console.log("Auth state changed:", event, session?.user?.id)
+          
+          if (event === 'SIGNED_OUT') {
+            setUser(null)
+            setRole("")
+            return
+          }
+
+          // Handle token refresh
+          if (event === 'TOKEN_REFRESHED') {
+            console.log('Token refreshed successfully')
+          }
+
+          if (session?.user) {
+            setUser(session.user)
+            await fetchUserRole(session.user.id)
+          } else {
+            setUser(null)
+            setRole("")
+          }
+        } catch (error) {
+          console.error("Error in auth state change:", error)
           setUser(null)
           setRole("")
-          setIsLoading(false)
-          return
-        }
-
-        // Handle token refresh
-        if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully')
-        }
-
-        if (session?.user) {
-          setUser(session.user)
-          await fetchUserRole(session.user.id)
-        } else {
-          setUser(null)
-          setRole("")
+        } finally {
           setIsLoading(false)
         }
       }
@@ -87,8 +94,7 @@ export function useAuth() {
     } catch (error) {
       console.error("Error in fetchUserRole:", error)
       setRole("")
-    } finally {
-      setIsLoading(false)
+      throw error // Re-throw the error to be handled by the caller
     }
   }
 
