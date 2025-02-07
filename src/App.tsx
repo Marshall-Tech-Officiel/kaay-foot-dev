@@ -34,16 +34,15 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (anciennement cacheTime)
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      refetchOnMount: true,
-      placeholderData: (previousData) => previousData, // Remplace keepPreviousData
+      refetchOnMount: true, // Recharger les données au montage du composant
+      keepPreviousData: true, // Garder les anciennes données pendant le chargement
     },
   },
 })
-
 
 export default function App() {
   return (
