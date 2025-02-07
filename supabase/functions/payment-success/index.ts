@@ -14,14 +14,11 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url)
-    let ref = url.searchParams.get('ref')
-    
-    // Extraction de la référence du format reçu
-    if (ref && ref.includes('_')) {
-      ref = ref.split('_')[0]
-    }
+    const fullRef = url.searchParams.get('ref')
+    console.log('1. Full reference:', fullRef)
 
-    console.log("Processing payment with ref:", ref)
+    // Ne pas splitter la référence, utiliser la complète
+    console.log('2. Using reference:', fullRef)
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -31,62 +28,38 @@ serve(async (req) => {
     const { data: pendingReservation, error: fetchError } = await supabase
       .from('reservations_pending')
       .select('*')
-      .eq('ref_command', ref)
+      .eq('ref_command', fullRef)
       .single()
 
-    if (fetchError || !pendingReservation) {
-      console.error("Fetch error:", fetchError)
-      throw new Error(`Pending reservation not found for ref: ${ref}`)
-    }
+    console.log('3. Pending reservation:', pendingReservation, 'Error:', fetchError)
 
-    console.log("Found pending reservation:", pendingReservation)
+    if (!pendingReservation) throw new Error('Reservation not found')
 
     const { error: insertError } = await supabase
       .from('reservations')
       .insert([{
         ...pendingReservation.reservation_data,
         statut: 'validee',
-        ref_paiement: ref
+        ref_paiement: fullRef
       }])
 
-    if (insertError) {
-      console.error("Insert error:", insertError)
-      throw insertError
-    }
+    console.log('4. Insert result:', insertError || 'Success')
 
     await supabase
       .from('reservations_pending')
       .delete()
-      .eq('ref_command', ref)
+      .eq('ref_command', fullRef)
 
-    // Rediriger vers la page des réservations si c'est une requête du navigateur
-    const isNavigator = req.headers.get('accept')?.includes('text/html')
+    console.log('5. Redirecting to:', '/reserviste/reservations')
     
-    if (isNavigator) {
-      return new Response(null, {
-        headers: {
-          ...corsHeaders,
-          'Location': '/reserviste/reservations'
-        },
-        status: 302
-      })
-    }
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    )
+    // Modification de l'URL de redirection
+    return Response.redirect(`${url.origin}/reserviste/reservations`, 302)
   } catch (error) {
-    console.error("Payment processing error:", error)
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     )
   }
 })
+
