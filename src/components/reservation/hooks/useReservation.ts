@@ -1,9 +1,8 @@
-
 import { useState } from "react"
 import { format } from "date-fns"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 
 interface UseReservationProps {
   terrainId: string
@@ -24,7 +23,6 @@ export function useReservation({
   const [selectedHours, setSelectedHours] = useState<number[]>([])
   const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation()
 
   const handlePayNow = async () => {
     if (!selectedDate || selectedHours.length === 0) {
@@ -81,14 +79,6 @@ export function useReservation({
         statut: "en_cours_de_paiement"
       }
 
-      // Store current location and return URL
-      const returnUrl = `${window.location.origin}/reserviste/reservations`
-      const currentLocation = location.pathname + location.search + location.hash
-
-      // Store locations in localStorage
-      localStorage.setItem('reservation_return_url', returnUrl)
-      localStorage.setItem('reservation_current_location', currentLocation)
-
       // Store the reservation data in the pending table
       const { data: pendingReservation, error: pendingError } = await supabase
         .from("reservations_pending")
@@ -111,8 +101,7 @@ export function useReservation({
           reservation_date: formattedDate,
           reservation_hours: formattedHours,
           reservationData,
-          cancel_url: `${window.location.origin}${currentLocation}`,
-          success_url: returnUrl
+          cancel_url: window.location.href
         }
       })
 
@@ -121,11 +110,7 @@ export function useReservation({
       }
 
       if (response.data.success === 1 && response.data.redirect_url) {
-        // Open PayTech in a new tab and store the window reference
-        const paymentWindow = window.open(response.data.redirect_url, '_blank')
-        if (!paymentWindow) {
-          toast.error("Le popup de paiement a été bloqué. Veuillez autoriser les popups pour ce site.")
-        }
+        window.location.href = response.data.redirect_url
       } else {
         throw new Error("Erreur lors de l'initialisation du paiement")
       }

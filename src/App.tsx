@@ -1,7 +1,6 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { Toaster } from "sonner"
+import { Toaster } from "@/components/ui/toaster"
 import Index from "@/pages/Index"
 import Login from "@/pages/auth/Login"
 import Register from "@/pages/auth/Register"
@@ -29,17 +28,12 @@ import Error403 from "@/pages/Error403"
 import Error404 from "@/pages/Error404"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
 
-// Créer un client avec des options optimisées pour la persistance des données
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes (anciennement cacheTime)
       retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: true, // Recharger les données au montage du composant
-      keepPreviousData: true, // Garder les anciennes données pendant le chargement
     },
   },
 })
@@ -95,7 +89,7 @@ export default function App() {
           {/* Catch all route - redirect to 404 */}
           <Route path="*" element={<Error404 />} />
         </Routes>
-        <Toaster position="top-right" />
+        <Toaster />
       </Router>
     </QueryClientProvider>
   )
