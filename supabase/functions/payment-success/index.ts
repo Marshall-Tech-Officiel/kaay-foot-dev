@@ -52,8 +52,11 @@ serve(async (req) => {
 
     console.log('5. Redirecting to:', '/reserviste/reservations')
     
-    // Modification de l'URL de redirection
-    return Response.redirect(`${url.origin}/reserviste/reservations`, 302)
+    const redirectUrl = 'https://kaayfoot.lovable.dev/reserviste/reservations'
+    return new Response(
+      `<html><head><meta http-equiv="refresh" content="0; url=${redirectUrl}"></head></html>`,
+      { headers: { "Content-Type": "text/html" } }
+    )
   } catch (error) {
     console.error('Error:', error)
     return new Response(
@@ -62,4 +65,3 @@ serve(async (req) => {
     )
   }
 })
-

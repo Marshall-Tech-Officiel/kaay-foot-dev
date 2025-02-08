@@ -59,9 +59,9 @@ serve(async (req) => {
       currency: "XOF",
       ref_command: ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
-      env: "test",
-      ipn_url: `${req.headers.get("origin")}/functions/paytech-webhook`,
-      success_url: `${req.headers.get("origin")}/functions/payment-success?ref=${ref_command}`,
+      env: "prod",
+      ipn_url: "https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook",
+      success_url: "https://kaayfoot.lovable.dev/reserviste/reservations",
       cancel_url: cancel_url,
       custom_field: JSON.stringify({
         ref_command,
@@ -113,4 +113,3 @@ serve(async (req) => {
     )
   }
 })
-
