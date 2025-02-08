@@ -51,9 +51,10 @@ serve(async (req) => {
       cancel_url
     })
 
-    // Updated URLs according to your configuration
-    const successUrl = `https://kaay-foot-dev.lovable.app/reserviste/reservations`
-    const cancelUrl = `https://preview--kaay-foot-dev.lovable.app/reserviste/accueil`
+    // Utiliser le domaine de preview pour toutes les URLs
+    const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
+    const successUrl = `${baseUrl}/reserviste/reservations`
+    const cancelUrl = `${baseUrl}/reserviste/accueil`
     const ipnUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook`
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"

@@ -53,10 +53,12 @@ serve(async (req) => {
 
     console.log('5. Clean up completed, redirecting to reservations page')
     
+    const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
+    
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': 'https://kaay-foot-dev.lovable.app/reserviste/reservations',
+        'Location': `${baseUrl}/reserviste/reservations`,
         ...corsHeaders
       }
     })
