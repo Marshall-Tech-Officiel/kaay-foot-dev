@@ -1,3 +1,4 @@
+
 import { useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
@@ -16,7 +17,7 @@ type ReservationWithTerrain = Tables<"reservations"> & {
 
 const statusColors = {
   en_attente: "yellow",
-  confirmee: "green",
+  validee: "green",
   annulee: "red",
   terminee: "gray",
 } as const
@@ -40,7 +41,7 @@ export default function ReservisteReservations() {
     },
   })
 
-  const { data: reservations } = useQuery({
+  const { data: reservations, refetch } = useQuery({
     queryKey: ["reservations", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return []
@@ -62,6 +63,11 @@ export default function ReservisteReservations() {
     enabled: !!profile?.id,
   })
 
+  // Auto-refresh when the component mounts to ensure we have the latest data
+  useEffect(() => {
+    refetch()
+  }, [refetch])
+
   useEffect(() => {
     if (!profile?.id) return
 
@@ -70,18 +76,18 @@ export default function ReservisteReservations() {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "reservations",
           filter: `reserviste_id=eq.${profile.id}`,
         },
         (payload) => {
-          const newStatus = payload.new.statut
-          if (newStatus === "confirmee") {
+          if (payload.new.statut === "validee") {
             toast({
-              title: "Réservation confirmée !",
-              description: "Votre réservation a été confirmée par le gérant.",
+              title: "Paiement confirmé !",
+              description: "Votre réservation a été validée avec succès.",
             })
+            refetch()
           }
         }
       )
@@ -90,7 +96,7 @@ export default function ReservisteReservations() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [profile?.id, toast])
+  }, [profile?.id, toast, refetch])
 
   const columns: ColumnDef<ReservationWithTerrain>[] = [
     {
@@ -130,7 +136,7 @@ export default function ReservisteReservations() {
       accessorKey: "statut",
       cell: (info) => (
         <Badge variant="outline" className={`bg-${statusColors[info.getValue<keyof typeof statusColors>()]}-100 text-${statusColors[info.getValue<keyof typeof statusColors>()]}-800 border-${statusColors[info.getValue<keyof typeof statusColors>()]}-200`}>
-          {info.getValue<string>().replace("_", " ")}
+          {info.getValue<string>() === "validee" ? "Validée" : info.getValue<string>().replace("_", " ")}
         </Badge>
       ),
     },

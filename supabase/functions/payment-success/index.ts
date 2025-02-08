@@ -51,15 +51,15 @@ serve(async (req) => {
       .delete()
       .eq('ref_command', fullRef)
 
-    console.log('5. Redirecting to reservations page')
+    console.log('5. Clean up completed, redirecting to reservations page')
     
-    const requestOrigin = new URL(req.headers.get('referer') || req.url).origin
-    const redirectUrl = `${requestOrigin}/reserviste/reservations`
-    
-    return new Response(
-      `<html><head><meta http-equiv="refresh" content="0; url=${redirectUrl}"></head></html>`,
-      { headers: { "Content-Type": "text/html" } }
-    )
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': 'https://kaay-foot-dev.lovable.app/reserviste/reservations',
+        ...corsHeaders
+      }
+    })
   } catch (error) {
     console.error('Error:', error)
     return new Response(
