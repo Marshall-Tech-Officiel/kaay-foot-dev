@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client"
@@ -19,18 +20,21 @@ export default function Login() {
     setIsLoading(true)
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          persistSession: true // Ensure session persistence
+        }
       })
 
       if (authError) throw authError
-      if (!authData.user) throw new Error("No user data returned")
+      if (!session?.user) throw new Error("No user data returned")
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
-        .eq('user_id', authData.user.id)
+        .eq('user_id', session.user.id)
         .single()
 
       if (profileError) throw profileError
@@ -46,13 +50,22 @@ export default function Login() {
       const route = routes[profileData.role as keyof typeof routes]
       if (!route) throw new Error('Rôle non reconnu')
 
+      // Success toast before navigation
+      toast({
+        title: "Connexion réussie",
+        description: "Vous êtes maintenant connecté",
+      })
+
       await Promise.resolve()
       navigate(route)
     } catch (error: any) {
+      console.error("Login error:", error)
       toast({
         variant: "destructive",
         title: "Erreur de connexion",
-        description: error.message || "Une erreur est survenue lors de la connexion",
+        description: error.message === "Invalid login credentials"
+          ? "Email ou mot de passe incorrect"
+          : error.message || "Une erreur est survenue lors de la connexion",
       })
     } finally {
       setIsLoading(false)
@@ -77,11 +90,11 @@ export default function Login() {
         <div className="bg-white p-8 rounded-lg shadow-lg space-y-6">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Your email address"
+                placeholder="Votre adresse email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -90,11 +103,11 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Your Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Your password"
+                placeholder="Votre mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -113,7 +126,7 @@ export default function Login() {
                   Connexion en cours...
                 </>
               ) : (
-                "Sign in"
+                "Se connecter"
               )}
             </Button>
           </form>
@@ -137,7 +150,7 @@ export default function Login() {
                 navigate('/register')
               }}
             >
-              Don't have an account? Sign up
+              Pas encore de compte ? Inscrivez-vous
             </a>
           </div>
         </div>
