@@ -83,7 +83,8 @@ export default function ReservisteReservations() {
           filter: `reserviste_id=eq.${profile.id}`,
         },
         (payload: RealtimePostgresChangesPayload<ReservationWithTerrain>) => {
-          if (payload.new && payload.new.statut === "validee") {
+          const newReservation = payload.new as ReservationWithTerrain
+          if (newReservation && newReservation.statut === "validee") {
             toast({
               title: "Paiement confirmé !",
               description: "Votre réservation a été validée avec succès.",
