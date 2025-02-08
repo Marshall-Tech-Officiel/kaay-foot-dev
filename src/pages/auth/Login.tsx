@@ -23,9 +23,6 @@ export default function Login() {
       const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          persistSession: true // Ensure session persistence
-        }
       })
 
       if (authError) throw authError
