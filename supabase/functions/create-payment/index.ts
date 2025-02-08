@@ -51,8 +51,10 @@ serve(async (req) => {
       cancel_url
     })
 
-    // Ensure we use HTTPS URLs
+    // Updated URLs according to your configuration
     const successUrl = `https://kaay-foot-dev.lovable.app/reserviste/reservations`
+    const cancelUrl = `https://preview--kaay-foot-dev.lovable.app/reserviste/accueil`
+    const ipnUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook`
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
     
@@ -63,9 +65,9 @@ serve(async (req) => {
       ref_command: ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "prod",
-      ipn_url: "https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook",
+      ipn_url: ipnUrl,
       success_url: successUrl,
-      cancel_url: `https://kaay-foot-dev.lovable.app/reserviste/terrain/${reservationData.terrain_id}`,
+      cancel_url: cancelUrl,
       custom_field: JSON.stringify({
         ref_command,
         reservationData
