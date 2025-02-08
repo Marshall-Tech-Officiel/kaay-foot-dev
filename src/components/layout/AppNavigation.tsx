@@ -4,14 +4,28 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Button } from "@/components/ui/button"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { AppSidebar } from "./AppSidebar"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
 
 export function AppNavigation() {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
+  const { role } = useAuth()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
 
   if (!isMobile) {
     return (
-      <div className="hidden md:block">
-        <AppSidebar />
+      <div className="hidden md:block w-[280px] min-w-[280px] border-r">
+        <AppSidebar
+          role={role}
+          onNavigate={(path) => navigate(path)}
+          onLogout={handleLogout}
+        />
       </div>
     )
   }
@@ -32,21 +46,26 @@ export function AppNavigation() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] p-0">
+            <SheetContent side="left" className="w-[280px] p-0">
               <SheetHeader className="p-4 text-left">
                 <SheetTitle>Menu</SheetTitle>
-                <SheetDescription className="sr-only">
+                <SheetDescription>
                   Menu de navigation principal de l'application
                 </SheetDescription>
               </SheetHeader>
-              <div className="h-[calc(100vh-4rem)]">
-                <AppSidebar isMobile={true} />
+              <div className="h-[calc(100vh-5rem)]">
+                <AppSidebar 
+                  isMobile={true}
+                  role={role}
+                  onNavigate={(path) => navigate(path)}
+                  onLogout={handleLogout}
+                />
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </nav>
-      <div className="h-16" /> {/* Spacer pour compenser la navbar fixed */}
+      <div className="h-16" />
     </>
   )
 }
