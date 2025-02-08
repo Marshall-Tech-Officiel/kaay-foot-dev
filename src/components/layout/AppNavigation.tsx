@@ -1,6 +1,6 @@
 
 import { Menu } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { AppSidebar } from "./AppSidebar"
@@ -32,7 +32,10 @@ export function AppNavigation() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0">
+            <SheetContent side="left" className="p-0 w-[300px]">
+              <SheetHeader className="p-4 text-left">
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
               <AppSidebar />
             </SheetContent>
           </Sheet>
