@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ReservationCalendar } from "./ReservationCalendar"
@@ -78,7 +79,7 @@ export function ReservationDialog({
       <DialogTrigger asChild>
         <Button className="w-full mt-4">Réserver</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Réserver {terrainNom}</DialogTitle>
         </DialogHeader>
