@@ -40,7 +40,7 @@ export function AppNavigation() {
                 </SheetDescription>
               </SheetHeader>
               <div className="h-[calc(100vh-4rem)]">
-                <AppSidebar />
+                <AppSidebar isMobile={true} />
               </div>
             </SheetContent>
           </Sheet>

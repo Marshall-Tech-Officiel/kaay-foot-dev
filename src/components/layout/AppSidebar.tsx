@@ -1,111 +1,93 @@
 
-import { Home, Users, Briefcase, Calendar, User, LogOut } from "lucide-react"
-import { useNavigate } from "react-router-dom"
-import { useAuth } from "@/hooks/useAuth"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { supabase } from "@/integrations/supabase/client"
-import { useIsMobile } from "@/hooks/use-mobile"
+import React from 'react';
+import { Home, Users, Briefcase, Calendar, User, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-type UserRole = "admin" | "proprietaire" | "gerant" | "reserviste"
+type UserRole = "admin" | "proprietaire" | "gerant" | "reserviste";
 
-// Menu items selon le rôle
-const adminMenu = [
-  { title: "Dashboard", icon: Home, path: "/admin/dashboard" },
-  { title: "Gestion Terrains", icon: Briefcase, path: "/admin/terrains" },
-  { title: "Gestion Propriétaires", icon: Users, path: "/admin/proprietaires" },
-  { title: "Profil", icon: User, path: "/admin/profil" },
-]
+// Simulation des données de menu selon le rôle
+const menuItems = {
+  admin: [
+    { title: "Dashboard", icon: Home, path: "/admin/dashboard" },
+    { title: "Gestion Terrains", icon: Briefcase, path: "/admin/terrains" },
+    { title: "Gestion Propriétaires", icon: Users, path: "/admin/proprietaires" },
+    { title: "Profil", icon: User, path: "/admin/profil" },
+  ],
+  proprietaire: [
+    { title: "Dashboard", icon: Home, path: "/proprietaire/dashboard" },
+    { title: "Mes Terrains", icon: Briefcase, path: "/proprietaire/terrains" },
+    { title: "Gestion Gérants", icon: Users, path: "/proprietaire/gerants" },
+    { title: "Réservations", icon: Calendar, path: "/proprietaire/reservations" },
+    { title: "Profil", icon: User, path: "/proprietaire/profil" },
+  ],
+  gerant: [
+    { title: "Dashboard", icon: Home, path: "/gerant/dashboard" },
+    { title: "Terrains Assignés", icon: Briefcase, path: "/gerant/terrains" },
+    { title: "Réservations", icon: Calendar, path: "/gerant/reservations" },
+    { title: "Profil", icon: User, path: "/gerant/profil" },
+  ],
+  reserviste: [
+    { title: "Accueil", icon: Home, path: "/reserviste/accueil" },
+    { title: "Mes Réservations", icon: Calendar, path: "/reserviste/reservations" },
+    { title: "Profil", icon: User, path: "/reserviste/profil" },
+  ]
+};
 
-const proprietaireMenu = [
-  { title: "Dashboard", icon: Home, path: "/proprietaire/dashboard" },
-  { title: "Mes Terrains", icon: Briefcase, path: "/proprietaire/terrains" },
-  { title: "Gestion Gérants", icon: Users, path: "/proprietaire/gerants" },
-  { title: "Réservations", icon: Calendar, path: "/proprietaire/reservations" },
-  { title: "Profil", icon: User, path: "/proprietaire/profil" },
-]
+interface AppSidebarProps {
+  isMobile?: boolean;
+}
 
-const gerantMenu = [
-  { title: "Dashboard", icon: Home, path: "/gerant/dashboard" },
-  { title: "Terrains Assignés", icon: Briefcase, path: "/gerant/terrains" },
-  { title: "Réservations", icon: Calendar, path: "/gerant/reservations" },
-  { title: "Profil", icon: User, path: "/gerant/profil" },
-]
-
-const reservisteMenu = [
-  { title: "Accueil", icon: Home, path: "/reserviste/accueil" },
-  { title: "Mes Réservations", icon: Calendar, path: "/reserviste/reservations" },
-  { title: "Profil", icon: User, path: "/reserviste/profil" },
-]
-
-export function AppSidebar() {
-  const navigate = useNavigate()
-  const { role } = useAuth()
-  const isMobile = useIsMobile()
-
-  const getMenuItems = () => {
-    const menuMap: Record<UserRole, typeof adminMenu> = {
-      admin: adminMenu,
-      proprietaire: proprietaireMenu,
-      gerant: gerantMenu,
-      reserviste: reservisteMenu,
-    }
-    return menuMap[role as UserRole] || adminMenu
-  }
+export function AppSidebar({ isMobile = false }: AppSidebarProps) {
+  const navigate = useNavigate();
+  const { role } = useAuth();
+  
+  const currentMenuItems = menuItems[role as UserRole] || menuItems.admin;
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate('/login')
-  }
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
-  return (
-    <Sidebar className={`${isMobile ? 'h-full' : 'h-full'} bg-[#2F7A3B]`}>
+  const menuContent = (
+    <div className="flex flex-col h-full bg-[#2F7A3B]">
+      {/* Header */}
       {!isMobile && (
-        <SidebarHeader className="p-4">
+        <div className="p-4">
           <div className="flex flex-col items-center">
             <img 
-              src="/kaayfoot-logo.png" 
+              src="/kaayfoot-logo.png"
               alt="Kaay-Foot Logo" 
               className="h-16 w-16 object-contain rounded-full bg-white p-2"
             />
           </div>
-        </SidebarHeader>
+        </div>
       )}
-      
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-white/70">Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {getMenuItems().map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    onClick={() => navigate(item.path)}
-                    tooltip={item.title}
-                    className="text-white hover:bg-white/10"
-                  >
-                    <item.icon className="text-white" />
-                    <span className="text-white">{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      {/* Menu Items */}
+      <div className="flex-1 px-4 py-2">
+        <div className="mb-2">
+          <span className="text-sm font-medium text-white/70">Menu</span>
+        </div>
+        <nav className="space-y-1">
+          {currentMenuItems.map((item) => (
+            <Button
+              key={item.title}
+              variant="ghost"
+              className="w-full justify-start text-white hover:bg-white/10"
+              onClick={() => navigate(item.path)}
+            >
+              <item.icon className="mr-2 h-4 w-4" />
+              <span>{item.title}</span>
+            </Button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Footer */}
+      <div className="p-4 mt-auto">
         <Button
           variant="ghost"
           className="w-full justify-start text-white hover:bg-white/10"
@@ -114,7 +96,17 @@ export function AppSidebar() {
           <LogOut className="mr-2 h-4 w-4" />
           <span>Déconnexion</span>
         </Button>
-      </SidebarFooter>
-    </Sidebar>
-  )
+      </div>
+    </div>
+  );
+
+  if (!isMobile) {
+    return (
+      <div className="h-full">
+        {menuContent}
+      </div>
+    );
+  }
+
+  return menuContent;
 }
