@@ -51,8 +51,8 @@ serve(async (req) => {
       cancel_url
     })
 
-    const baseUrl = new URL(req.url).origin
-    const successUrl = `${baseUrl}/functions/v1/payment-success?ref=${ref_command}`
+    // Ensure we use HTTPS URLs
+    const successUrl = `https://kaay-foot-dev.lovable.app/reserviste/reservations`
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
     
@@ -65,7 +65,7 @@ serve(async (req) => {
       env: "prod",
       ipn_url: "https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook",
       success_url: successUrl,
-      cancel_url: cancel_url,
+      cancel_url: `https://kaay-foot-dev.lovable.app/reserviste/terrain/${reservationData.terrain_id}`,
       custom_field: JSON.stringify({
         ref_command,
         reservationData
