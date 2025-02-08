@@ -1,3 +1,4 @@
+
 import { Home, Users, Briefcase, Calendar, User, LogOut } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/integrations/supabase/client"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 type UserRole = "admin" | "proprietaire" | "gerant" | "reserviste"
 
@@ -50,8 +52,8 @@ const reservisteMenu = [
 export function AppSidebar() {
   const navigate = useNavigate()
   const { role } = useAuth()
+  const isMobile = useIsMobile()
 
-  // Sélectionner le menu selon le rôle
   const getMenuItems = () => {
     const menuMap: Record<UserRole, typeof adminMenu> = {
       admin: adminMenu,
@@ -68,13 +70,13 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="h-full bg-[#2F7A3B]">
+    <Sidebar className={`${isMobile ? 'h-[100dvh]' : 'h-full'} bg-[#2F7A3B]`}>
       <SidebarHeader className="p-4">
         <div className="flex flex-col items-center">
           <img 
             src="/kaayfoot-logo.png" 
             alt="Kaay-Foot Logo" 
-            className="h-16 w-16 object-contain rounded-full bg-white p-2" 
+            className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} object-contain rounded-full bg-white p-2`}
           />
         </div>
       </SidebarHeader>

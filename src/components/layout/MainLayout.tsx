@@ -1,6 +1,6 @@
 
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "./AppSidebar"
+import { AppNavigation } from "./AppNavigation"
 import { useAuth } from "@/hooks/useAuth"
 
 interface MainLayoutProps {
@@ -21,10 +21,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <div className="hidden md:block">
-          <AppSidebar />
-        </div>
-
+        <AppNavigation />
+        
         <div className="flex-1 bg-gradient-to-br from-[#E0F2E9] to-[#CDE9E0]">
           <div className="h-full w-full overflow-x-auto">
             <main className="p-6">
@@ -36,4 +34,3 @@ export function MainLayout({ children }: MainLayoutProps) {
     </SidebarProvider>
   )
 }
-
