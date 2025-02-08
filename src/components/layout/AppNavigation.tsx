@@ -8,10 +8,20 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 
+// Définition du type pour s'assurer que role est valide
+type UserRole = "admin" | "proprietaire" | "gerant" | "reserviste"
+
+const isValidRole = (role: string): role is UserRole => {
+  return ['admin', 'proprietaire', 'gerant', 'reserviste'].includes(role)
+}
+
 export function AppNavigation() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
-  const { role } = useAuth()
+  const { role: rawRole } = useAuth()
+  
+  // Convertir le role en UserRole valide, par défaut "reserviste"
+  const role: UserRole = isValidRole(rawRole) ? rawRole : "reserviste"
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
