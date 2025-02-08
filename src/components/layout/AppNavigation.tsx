@@ -23,7 +23,7 @@ export function AppNavigation() {
           <img 
             src="/kaayfoot-logo.png" 
             alt="Kaay-Foot Logo" 
-            className="h-10 w-10 object-contain rounded-full bg-white p-1" 
+            className="h-10 w-10 object-contain rounded-full bg-white p-1"
           />
           
           <Sheet>
@@ -32,14 +32,16 @@ export function AppNavigation() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[300px]">
+            <SheetContent side="left" className="w-[300px] p-0">
               <SheetHeader className="p-4 text-left">
                 <SheetTitle>Menu</SheetTitle>
                 <SheetDescription className="sr-only">
                   Menu de navigation principal de l'application
                 </SheetDescription>
               </SheetHeader>
-              <AppSidebar />
+              <div className="h-[calc(100vh-4rem)]">
+                <AppSidebar />
+              </div>
             </SheetContent>
           </Sheet>
         </div>

@@ -70,16 +70,18 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className={`${isMobile ? 'h-[100dvh]' : 'h-full'} bg-[#2F7A3B]`}>
-      <SidebarHeader className="p-4">
-        <div className="flex flex-col items-center">
-          <img 
-            src="/kaayfoot-logo.png" 
-            alt="Kaay-Foot Logo" 
-            className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} object-contain rounded-full bg-white p-2`}
-          />
-        </div>
-      </SidebarHeader>
+    <Sidebar className={`${isMobile ? 'h-full' : 'h-full'} bg-[#2F7A3B]`}>
+      {!isMobile && (
+        <SidebarHeader className="p-4">
+          <div className="flex flex-col items-center">
+            <img 
+              src="/kaayfoot-logo.png" 
+              alt="Kaay-Foot Logo" 
+              className="h-16 w-16 object-contain rounded-full bg-white p-2"
+            />
+          </div>
+        </SidebarHeader>
+      )}
       
       <SidebarContent>
         <SidebarGroup>
