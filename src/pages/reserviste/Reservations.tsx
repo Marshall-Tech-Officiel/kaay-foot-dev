@@ -10,6 +10,7 @@ import { fr } from "date-fns/locale"
 import { Tables } from "@/integrations/supabase/types"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { type ColumnDef } from "@tanstack/react-table"
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 
 type ReservationWithTerrain = Tables<"reservations"> & {
   terrain: Pick<Tables<"terrains">, "nom" | "localisation">
@@ -81,8 +82,8 @@ export default function ReservisteReservations() {
           table: "reservations",
           filter: `reserviste_id=eq.${profile.id}`,
         },
-        (payload) => {
-          if (payload.new.statut === "validee") {
+        (payload: RealtimePostgresChangesPayload<ReservationWithTerrain>) => {
+          if (payload.new && payload.new.statut === "validee") {
             toast({
               title: "Paiement confirmé !",
               description: "Votre réservation a été validée avec succès.",
