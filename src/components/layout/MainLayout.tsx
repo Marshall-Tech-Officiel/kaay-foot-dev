@@ -4,7 +4,14 @@ import { Menu } from "lucide-react"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription 
+} from "@/components/ui/sheet"
 import { useAuth } from "@/hooks/useAuth"
 
 interface MainLayoutProps {
@@ -33,12 +40,18 @@ export function MainLayout({ children }: MainLayoutProps) {
         <div className="fixed top-4 left-4 z-50 md:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" aria-label="Ouvrir le menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72 h-full">
-              <div className="h-full overflow-y-auto">
+            <SheetContent side="left" className="w-72">
+              <SheetHeader className="text-left">
+                <SheetTitle>Menu Navigation</SheetTitle>
+                <SheetDescription>
+                  Accédez à toutes les fonctionnalités de l&apos;application
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-6 h-[calc(100vh-8rem)] overflow-y-auto">
                 <AppSidebar />
               </div>
             </SheetContent>
