@@ -17,7 +17,8 @@ serve(async (req) => {
     const fullRef = url.searchParams.get('ref')
     console.log('1. Full reference:', fullRef)
 
-    // Ne pas splitter la référence, utiliser la complète
+    if (!fullRef) throw new Error('Reference not found')
+
     console.log('2. Using reference:', fullRef)
 
     const supabase = createClient(
@@ -50,9 +51,11 @@ serve(async (req) => {
       .delete()
       .eq('ref_command', fullRef)
 
-    console.log('5. Redirecting to:', '/reserviste/reservations')
+    console.log('5. Redirecting to reservations page')
     
-    const redirectUrl = 'https://kaayfoot.lovable.dev/reserviste/reservations'
+    const requestOrigin = new URL(req.headers.get('referer') || req.url).origin
+    const redirectUrl = `${requestOrigin}/reserviste/reservations`
+    
     return new Response(
       `<html><head><meta http-equiv="refresh" content="0; url=${redirectUrl}"></head></html>`,
       { headers: { "Content-Type": "text/html" } }

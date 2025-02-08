@@ -46,14 +46,14 @@ serve(async (req) => {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        const { data: pendingReservation, error } = await supabase
+        const { data: pendingReservation, error: fetchError } = await supabase
           .from('reservations_pending')
           .select('*')
           .eq('ref_command', ref)
           .single()
 
-        if (error || !pendingReservation) {
-          console.error("Error fetching pending reservation:", error)
+        if (fetchError || !pendingReservation) {
+          console.error("Error fetching pending reservation:", fetchError)
           throw new Error('Pending reservation not found')
         }
 
