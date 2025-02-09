@@ -17,36 +17,55 @@ async function sha256(message: string): Promise<string> {
 }
 
 serve(async (req) => {
+  console.log("=== PAYTECH WEBHOOK FUNCTION STARTED ===")
+  console.log("Request method:", req.method)
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()))
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const body = await req.json()
-    console.log("1. Webhook PayTech reçu:", {
+    const rawBody = await req.text()
+    console.log("1. Raw webhook body:", rawBody)
+    
+    let body
+    try {
+      body = JSON.parse(rawBody)
+    } catch (e) {
+      console.error("Error parsing webhook body:", e)
+      throw new Error("Invalid JSON payload")
+    }
+
+    console.log("2. Webhook PayTech parsed:", {
       type_event: body.type_event,
       ref_command: body.ref_command,
-      custom_field: body.custom_field,
       token: body.token,
       api_key_sha256: body.api_key_sha256,
       api_secret_sha256: body.api_secret_sha256
     })
 
     if (body.type_event === 'sale_complete') {
-      const my_api_key = Deno.env.get('PAYTECH_API_KEY') || ''
-      const my_api_secret = Deno.env.get('PAYTECH_API_SECRET') || ''
+      const my_api_key = Deno.env.get('PAYTECH_API_KEY')
+      const my_api_secret = Deno.env.get('PAYTECH_API_SECRET')
       
-      console.log("2. Vérification des identifiants API:", {
+      console.log("3. Vérification des identifiants API:", {
         api_key_exists: !!my_api_key,
         api_secret_exists: !!my_api_secret
       })
 
+      if (!my_api_key || !my_api_secret) {
+        throw new Error('API credentials not configured')
+      }
+
       const api_key_hash = await sha256(my_api_key)
       const api_secret_hash = await sha256(my_api_secret)
 
-      console.log("3. Hash comparaison:", {
-        api_key_match: api_key_hash === body.api_key_sha256,
-        api_secret_match: api_secret_hash === body.api_secret_sha256
+      console.log("4. Hash comparaison:", {
+        received_key_hash: body.api_key_sha256,
+        calculated_key_hash: api_key_hash,
+        key_match: api_key_hash === body.api_key_sha256,
+        secret_match: api_secret_hash === body.api_secret_sha256
       })
 
       if (
@@ -58,7 +77,7 @@ serve(async (req) => {
           throw new Error('Référence non trouvée dans les données du webhook')
         }
 
-        console.log("4. Référence de commande validée:", ref)
+        console.log("5. Référence de commande validée:", ref)
 
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
@@ -71,8 +90,10 @@ serve(async (req) => {
           .eq('ref_command', ref)
           .single()
 
-        console.log("5. Réservation en attente:", pendingReservation)
-        console.log("Erreur de récupération:", fetchError)
+        console.log("6. Réservation en attente:", {
+          found: !!pendingReservation,
+          error: fetchError?.message
+        })
 
         if (fetchError) {
           throw new Error(`Erreur lors de la récupération de la réservation en attente: ${fetchError.message}`)
@@ -89,7 +110,7 @@ serve(async (req) => {
             ref_paiement: ref
           }
 
-          console.log("6. Données à insérer:", dataToInsert)
+          console.log("7. Données à insérer:", dataToInsert)
 
           const { data: insertedData, error: insertError } = await supabase
             .from('reservations')
@@ -97,10 +118,10 @@ serve(async (req) => {
             .select()
             .single()
 
-          console.log("7. Résultat de l'insertion:", {
+          console.log("8. Résultat de l'insertion:", {
             success: !insertError,
             data: insertedData,
-            error: insertError
+            error: insertError?.message
           })
 
           if (insertError) {
@@ -112,7 +133,10 @@ serve(async (req) => {
             .delete()
             .eq('ref_command', ref)
 
-          console.log("8. Nettoyage des données temporaires:", deleteError || 'Succès')
+          console.log("9. Nettoyage des données temporaires:", {
+            success: !deleteError,
+            error: deleteError?.message
+          })
 
           if (deleteError) {
             console.error('Attention: Erreur lors de la suppression de la réservation en attente:', deleteError)
@@ -126,7 +150,7 @@ serve(async (req) => {
             }
           )
         } catch (error) {
-          console.error("9. Erreur critique lors du transfert de la réservation:", error)
+          console.error("10. Erreur critique lors du transfert de la réservation:", error)
           throw error
         }
       } else {
@@ -136,7 +160,10 @@ serve(async (req) => {
 
     throw new Error('Type d\'événement invalide')
   } catch (error) {
-    console.error("Erreur globale du webhook:", error)
+    console.error("11. Erreur globale du webhook:", {
+      message: error.message,
+      stack: error.stack
+    })
     return new Response(
       JSON.stringify({ 
         error: error.message,
