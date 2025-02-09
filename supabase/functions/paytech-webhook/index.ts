@@ -23,7 +23,11 @@ serve(async (req) => {
 
   try {
     const body = await req.json()
-    console.log("PayTech webhook received:", body)
+    console.log("1. Webhook PayTech reçu:", {
+      type_event: body.type_event,
+      ref_command: body.ref_command,
+      custom_field: body.custom_field
+    })
 
     if (body.type_event === 'sale_complete') {
       const my_api_key = Deno.env.get('PAYTECH_API_KEY') || ''
@@ -32,14 +36,18 @@ serve(async (req) => {
       const api_key_hash = await sha256(my_api_key)
       const api_secret_hash = await sha256(my_api_secret)
 
+      console.log("2. Vérification des identifiants API")
+
       if (
         api_key_hash === body.api_key_sha256 && 
         api_secret_hash === body.api_secret_sha256
       ) {
         const ref = body.ref_command || body.custom_field?.ref_command
         if (!ref) {
-          throw new Error('Reference not found in webhook data')
+          throw new Error('Référence non trouvée dans les données du webhook')
         }
+
+        console.log("3. Référence de commande validée:", ref)
 
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
@@ -52,46 +60,72 @@ serve(async (req) => {
           .eq('ref_command', ref)
           .single()
 
-        if (fetchError || !pendingReservation) {
-          console.error("Error fetching pending reservation:", fetchError)
-          throw new Error('Pending reservation not found')
+        console.log("4. Réservation en attente:", pendingReservation, "Erreur:", fetchError)
+
+        if (fetchError) {
+          throw new Error(`Erreur lors de la récupération de la réservation en attente: ${fetchError.message}`)
         }
 
-        const { error: insertError } = await supabase
-          .from('reservations')
-          .insert([{
+        if (!pendingReservation) {
+          throw new Error('Réservation en attente non trouvée')
+        }
+
+        try {
+          console.log("5. Données à insérer:", {
             ...pendingReservation.reservation_data,
             statut: 'validee',
             ref_paiement: ref
-          }])
+          })
 
-        if (insertError) {
-          console.error("Error creating final reservation:", insertError)
-          throw insertError
-        }
+          const { error: insertError } = await supabase
+            .from('reservations')
+            .insert([{
+              ...pendingReservation.reservation_data,
+              statut: 'validee',
+              ref_paiement: ref
+            }])
 
-        await supabase
-          .from('reservations_pending')
-          .delete()
-          .eq('ref_command', ref)
+          console.log("6. Résultat de l'insertion:", insertError || 'Succès')
 
-        return new Response(
-          JSON.stringify({ success: true }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
+          if (insertError) {
+            throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
           }
-        )
+
+          const { error: deleteError } = await supabase
+            .from('reservations_pending')
+            .delete()
+            .eq('ref_command', ref)
+
+          console.log("7. Nettoyage des données temporaires:", deleteError || 'Succès')
+
+          if (deleteError) {
+            console.error('Attention: Erreur lors de la suppression de la réservation en attente:', deleteError)
+          }
+
+          return new Response(
+            JSON.stringify({ success: true }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200
+            }
+          )
+        } catch (error) {
+          console.error("8. Erreur critique lors du transfert de la réservation:", error)
+          throw error
+        }
       } else {
-        throw new Error('Invalid API credentials')
+        throw new Error('Identifiants API invalides')
       }
     }
 
-    throw new Error('Invalid event type')
+    throw new Error('Type d\'événement invalide')
   } catch (error) {
-    console.error("PayTech webhook error:", error)
+    console.error("Erreur globale du webhook:", error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: "Une erreur est survenue lors du traitement du webhook"
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
