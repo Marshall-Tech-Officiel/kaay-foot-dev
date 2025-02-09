@@ -26,6 +26,10 @@ interface PaymentRequest {
 }
 
 serve(async (req) => {
+  console.log("=== CREATE PAYMENT FUNCTION STARTED ===")
+  console.log("Request method:", req.method)
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()))
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -51,7 +55,6 @@ serve(async (req) => {
       cancel_url
     })
 
-    // Utiliser le domaine de preview pour toutes les URLs
     const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
     const successUrl = `${baseUrl}/reserviste/reservations`
     const cancelUrl = `${baseUrl}/reserviste/accueil`
@@ -59,7 +62,6 @@ serve(async (req) => {
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
 
-    // Vérification des clés API
     const apiKey = Deno.env.get("PAYTECH_API_KEY")
     const apiSecret = Deno.env.get("PAYTECH_API_SECRET")
 
@@ -67,10 +69,46 @@ serve(async (req) => {
       apiKeyExists: !!apiKey,
       apiSecretExists: !!apiSecret
     })
+
+    // Vérifions d'abord si une réservation en attente existe déjà
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    console.log("3. Vérification des réservations en attente pour:", ref_command)
+
+    const { data: existingReservation, error: fetchError } = await supabase
+      .from('reservations_pending')
+      .select('*')
+      .eq('ref_command', ref_command)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error("4. Erreur lors de la vérification des réservations en attente:", fetchError)
+      throw new Error(`Erreur base de données: ${fetchError.message}`)
+    }
+
+    if (!existingReservation) {
+      console.log("5. Création d'une nouvelle réservation en attente")
+      const { error: insertError } = await supabase
+        .from('reservations_pending')
+        .insert([{
+          ref_command,
+          reservation_data: reservationData
+        }])
+
+      if (insertError) {
+        console.error("6. Erreur lors de la création de la réservation en attente:", insertError)
+        throw new Error(`Erreur lors de la création de la réservation: ${insertError.message}`)
+      }
+    } else {
+      console.log("7. Réservation en attente existante trouvée:", existingReservation)
+    }
     
     const params = {
       item_name: `Réservation ${terrain_name}`,
-      item_price: `${amount}`, // Conversion en string
+      item_price: `${amount}`,
       currency: "XOF",
       ref_command: ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
@@ -91,8 +129,8 @@ serve(async (req) => {
       "API_SECRET": apiSecret || "",
     }
 
-    console.log("3. PayTech request params:", JSON.stringify(params, null, 2))
-    console.log("4. PayTech request headers:", {
+    console.log("8. PayTech request params:", JSON.stringify(params, null, 2))
+    console.log("9. PayTech request headers:", {
       Accept: headers.Accept,
       ContentType: headers["Content-Type"],
       API_KEY_exists: !!headers.API_KEY,
@@ -106,19 +144,19 @@ serve(async (req) => {
     })
 
     const responseText = await response.text()
-    console.log("5. PayTech raw response:", responseText)
+    console.log("10. PayTech raw response:", responseText)
 
     let data
     try {
       data = JSON.parse(responseText)
-      console.log("6. PayTech parsed response:", data)
+      console.log("11. PayTech parsed response:", data)
     } catch (parseError) {
-      console.error("7. Error parsing PayTech response:", parseError)
+      console.error("12. Error parsing PayTech response:", parseError)
       throw new Error(`Invalid JSON response from PayTech: ${responseText}`)
     }
 
-    if (!response.ok) {
-      console.error("8. PayTech error response:", {
+    if (!response.ok || data.success !== 1) {
+      console.error("13. PayTech error response:", {
         status: response.status,
         statusText: response.statusText,
         data
@@ -134,7 +172,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error("9. Error processing payment request:", error)
+    console.error("14. Error processing payment request:", error)
     return new Response(
       JSON.stringify({ 
         error: error.message,
