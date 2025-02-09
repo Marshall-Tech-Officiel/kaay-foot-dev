@@ -32,7 +32,8 @@ serve(async (req) => {
       .eq('ref_command', fullRef)
       .single()
 
-    console.log('3. Réservation en attente:', pendingReservation, 'Erreur de récupération:', fetchError)
+    console.log('3. Réservation en attente:', pendingReservation)
+    console.log('Erreur de récupération:', fetchError)
 
     if (fetchError) {
       throw new Error(`Erreur lors de la récupération de la réservation en attente: ${fetchError.message}`)
@@ -42,29 +43,31 @@ serve(async (req) => {
       throw new Error('Aucune réservation en attente trouvée pour cette référence')
     }
 
-    // Vérifions la structure des données
-    console.log('4. Données de réservation à insérer:', {
+    const dataToInsert = {
       ...pendingReservation.reservation_data,
       statut: 'validee',
       ref_paiement: fullRef
-    })
+    }
+
+    console.log('4. Données à insérer:', dataToInsert)
 
     try {
-      const { error: insertError } = await supabase
+      const { data: insertedData, error: insertError } = await supabase
         .from('reservations')
-        .insert([{
-          ...pendingReservation.reservation_data,
-          statut: 'validee',
-          ref_paiement: fullRef
-        }])
+        .insert([dataToInsert])
+        .select()
+        .single()
 
-      console.log('5. Résultat de l\'insertion:', insertError || 'Succès')
+      console.log('5. Résultat de l\'insertion:', {
+        success: !insertError,
+        data: insertedData,
+        error: insertError
+      })
 
       if (insertError) {
         throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
       }
 
-      // Suppression uniquement après une insertion réussie
       const { error: deleteError } = await supabase
         .from('reservations_pending')
         .delete()

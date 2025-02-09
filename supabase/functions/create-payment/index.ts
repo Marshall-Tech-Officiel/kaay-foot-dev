@@ -41,7 +41,7 @@ serve(async (req) => {
       cancel_url 
     } = await req.json() as PaymentRequest
 
-    console.log("Payment request received:", {
+    console.log("1. Payment request received:", {
       amount,
       ref_command,
       terrain_name,
@@ -58,10 +58,19 @@ serve(async (req) => {
     const ipnUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook`
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
+
+    // Vérification des clés API
+    const apiKey = Deno.env.get("PAYTECH_API_KEY")
+    const apiSecret = Deno.env.get("PAYTECH_API_SECRET")
+
+    console.log("2. API Keys présentes:", {
+      apiKeyExists: !!apiKey,
+      apiSecretExists: !!apiSecret
+    })
     
     const params = {
       item_name: `Réservation ${terrain_name}`,
-      item_price: amount,
+      item_price: `${amount}`, // Conversion en string
       currency: "XOF",
       ref_command: ref_command,
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
@@ -78,11 +87,17 @@ serve(async (req) => {
     const headers = {
       "Accept": "application/json",
       "Content-Type": "application/json",
-      "API_KEY": Deno.env.get("PAYTECH_API_KEY") || "",
-      "API_SECRET": Deno.env.get("PAYTECH_API_SECRET") || "",
+      "API_KEY": apiKey || "",
+      "API_SECRET": apiSecret || "",
     }
 
-    console.log("PayTech request params:", params)
+    console.log("3. PayTech request params:", JSON.stringify(params, null, 2))
+    console.log("4. PayTech request headers:", {
+      Accept: headers.Accept,
+      ContentType: headers["Content-Type"],
+      API_KEY_exists: !!headers.API_KEY,
+      API_SECRET_exists: !!headers.API_SECRET
+    })
 
     const response = await fetch(paymentRequestUrl, {
       method: "POST",
@@ -90,11 +105,24 @@ serve(async (req) => {
       body: JSON.stringify(params)
     })
 
-    const data = await response.json()
-    console.log("PayTech response:", data)
+    const responseText = await response.text()
+    console.log("5. PayTech raw response:", responseText)
+
+    let data
+    try {
+      data = JSON.parse(responseText)
+      console.log("6. PayTech parsed response:", data)
+    } catch (parseError) {
+      console.error("7. Error parsing PayTech response:", parseError)
+      throw new Error(`Invalid JSON response from PayTech: ${responseText}`)
+    }
 
     if (!response.ok) {
-      console.error("PayTech error response:", data)
+      console.error("8. PayTech error response:", {
+        status: response.status,
+        statusText: response.statusText,
+        data
+      })
       throw new Error(`PayTech error: ${JSON.stringify(data)}`)
     }
 
@@ -106,7 +134,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error("Error processing payment request:", error)
+    console.error("9. Error processing payment request:", error)
     return new Response(
       JSON.stringify({ 
         error: error.message,

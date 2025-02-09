@@ -26,17 +26,28 @@ serve(async (req) => {
     console.log("1. Webhook PayTech reçu:", {
       type_event: body.type_event,
       ref_command: body.ref_command,
-      custom_field: body.custom_field
+      custom_field: body.custom_field,
+      token: body.token,
+      api_key_sha256: body.api_key_sha256,
+      api_secret_sha256: body.api_secret_sha256
     })
 
     if (body.type_event === 'sale_complete') {
       const my_api_key = Deno.env.get('PAYTECH_API_KEY') || ''
       const my_api_secret = Deno.env.get('PAYTECH_API_SECRET') || ''
       
+      console.log("2. Vérification des identifiants API:", {
+        api_key_exists: !!my_api_key,
+        api_secret_exists: !!my_api_secret
+      })
+
       const api_key_hash = await sha256(my_api_key)
       const api_secret_hash = await sha256(my_api_secret)
 
-      console.log("2. Vérification des identifiants API")
+      console.log("3. Hash comparaison:", {
+        api_key_match: api_key_hash === body.api_key_sha256,
+        api_secret_match: api_secret_hash === body.api_secret_sha256
+      })
 
       if (
         api_key_hash === body.api_key_sha256 && 
@@ -47,7 +58,7 @@ serve(async (req) => {
           throw new Error('Référence non trouvée dans les données du webhook')
         }
 
-        console.log("3. Référence de commande validée:", ref)
+        console.log("4. Référence de commande validée:", ref)
 
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
@@ -60,7 +71,8 @@ serve(async (req) => {
           .eq('ref_command', ref)
           .single()
 
-        console.log("4. Réservation en attente:", pendingReservation, "Erreur:", fetchError)
+        console.log("5. Réservation en attente:", pendingReservation)
+        console.log("Erreur de récupération:", fetchError)
 
         if (fetchError) {
           throw new Error(`Erreur lors de la récupération de la réservation en attente: ${fetchError.message}`)
@@ -71,21 +83,25 @@ serve(async (req) => {
         }
 
         try {
-          console.log("5. Données à insérer:", {
+          const dataToInsert = {
             ...pendingReservation.reservation_data,
             statut: 'validee',
             ref_paiement: ref
-          })
+          }
 
-          const { error: insertError } = await supabase
+          console.log("6. Données à insérer:", dataToInsert)
+
+          const { data: insertedData, error: insertError } = await supabase
             .from('reservations')
-            .insert([{
-              ...pendingReservation.reservation_data,
-              statut: 'validee',
-              ref_paiement: ref
-            }])
+            .insert([dataToInsert])
+            .select()
+            .single()
 
-          console.log("6. Résultat de l'insertion:", insertError || 'Succès')
+          console.log("7. Résultat de l'insertion:", {
+            success: !insertError,
+            data: insertedData,
+            error: insertError
+          })
 
           if (insertError) {
             throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
@@ -96,7 +112,7 @@ serve(async (req) => {
             .delete()
             .eq('ref_command', ref)
 
-          console.log("7. Nettoyage des données temporaires:", deleteError || 'Succès')
+          console.log("8. Nettoyage des données temporaires:", deleteError || 'Succès')
 
           if (deleteError) {
             console.error('Attention: Erreur lors de la suppression de la réservation en attente:', deleteError)
@@ -110,7 +126,7 @@ serve(async (req) => {
             }
           )
         } catch (error) {
-          console.error("8. Erreur critique lors du transfert de la réservation:", error)
+          console.error("9. Erreur critique lors du transfert de la réservation:", error)
           throw error
         }
       } else {
