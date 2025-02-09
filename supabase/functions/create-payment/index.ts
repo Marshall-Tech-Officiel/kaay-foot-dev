@@ -38,7 +38,7 @@ serve(async (req) => {
       reservation_date, 
       reservation_hours, 
       reservationData,
-      cancel_url
+      cancel_url 
     } = await req.json() as PaymentRequest
 
     console.log("Payment request received:", {
