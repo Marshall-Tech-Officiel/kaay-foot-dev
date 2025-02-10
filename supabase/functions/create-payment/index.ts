@@ -56,7 +56,8 @@ serve(async (req) => {
     })
 
     const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
-    const successUrl = `${baseUrl}/reserviste/reservations`
+    // Rediriger vers la fonction payment-success au lieu du frontend
+    const successUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/payment-success`
     const cancelUrl = `${baseUrl}/reserviste/accueil`
     const ipnUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook`
 
@@ -106,6 +107,12 @@ serve(async (req) => {
       console.log("7. Réservation en attente existante trouvée:", existingReservation)
     }
     
+    const customField = {
+      ref_command,
+      reservationData,
+      redirect_after_success: `${baseUrl}/reserviste/reservations`
+    }
+
     const params = {
       item_name: `Réservation ${terrain_name}`,
       item_price: `${amount}`,
@@ -116,10 +123,7 @@ serve(async (req) => {
       ipn_url: ipnUrl,
       success_url: successUrl,
       cancel_url: cancelUrl,
-      custom_field: JSON.stringify({
-        ref_command,
-        reservationData
-      })
+      custom_field: JSON.stringify(customField)
     }
 
     const headers = {

@@ -25,43 +25,43 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Endpoint de test pour vérifier que le webhook est actif
+  if (req.method === 'GET') {
+    return new Response(
+      JSON.stringify({ status: 'webhook endpoint active', timestamp: new Date().toISOString() }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
+    )
+  }
+
   try {
     const rawBody = await req.text()
-    console.log("1. Raw webhook body:", rawBody)
+    console.log("Raw webhook payload:", rawBody)
     
     let body
     try {
       body = JSON.parse(rawBody)
+      console.log("Parsed webhook payload:", body)
     } catch (e) {
-      console.error("Error parsing webhook body:", e)
+      console.error("Error parsing webhook payload:", e)
       throw new Error("Invalid JSON payload")
     }
-
-    console.log("2. Webhook PayTech parsed:", {
-      type_event: body.type_event,
-      ref_command: body.ref_command,
-      token: body.token,
-      api_key_sha256: body.api_key_sha256,
-      api_secret_sha256: body.api_secret_sha256
-    })
 
     if (body.type_event === 'sale_complete') {
       const my_api_key = Deno.env.get('PAYTECH_API_KEY')
       const my_api_secret = Deno.env.get('PAYTECH_API_SECRET')
       
-      console.log("3. Vérification des identifiants API:", {
-        api_key_exists: !!my_api_key,
-        api_secret_exists: !!my_api_secret
-      })
-
       if (!my_api_key || !my_api_secret) {
+        console.error('Missing API credentials')
         throw new Error('API credentials not configured')
       }
 
       const api_key_hash = await sha256(my_api_key)
       const api_secret_hash = await sha256(my_api_secret)
 
-      console.log("4. Hash comparaison:", {
+      console.log("Hash verification:", {
         received_key_hash: body.api_key_sha256,
         calculated_key_hash: api_key_hash,
         key_match: api_key_hash === body.api_key_sha256,
@@ -77,7 +77,7 @@ serve(async (req) => {
           throw new Error('Référence non trouvée dans les données du webhook')
         }
 
-        console.log("5. Référence de commande validée:", ref)
+        console.log("Processing payment for ref:", ref)
 
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
@@ -90,17 +90,20 @@ serve(async (req) => {
           .eq('ref_command', ref)
           .single()
 
-        console.log("6. Réservation en attente:", {
-          found: !!pendingReservation,
-          error: fetchError?.message
-        })
-
         if (fetchError) {
+          console.error("Error fetching pending reservation:", fetchError)
           throw new Error(`Erreur lors de la récupération de la réservation en attente: ${fetchError.message}`)
         }
 
         if (!pendingReservation) {
-          throw new Error('Réservation en attente non trouvée')
+          console.warn("No pending reservation found for ref:", ref)
+          return new Response(
+            JSON.stringify({ status: 'success', message: 'Réservation déjà traitée' }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200
+            }
+          )
         }
 
         try {
@@ -110,7 +113,7 @@ serve(async (req) => {
             ref_paiement: ref
           }
 
-          console.log("7. Données à insérer:", dataToInsert)
+          console.log("Inserting reservation:", dataToInsert)
 
           const { data: insertedData, error: insertError } = await supabase
             .from('reservations')
@@ -118,52 +121,48 @@ serve(async (req) => {
             .select()
             .single()
 
-          console.log("8. Résultat de l'insertion:", {
-            success: !insertError,
-            data: insertedData,
-            error: insertError?.message
-          })
-
           if (insertError) {
             throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
           }
+
+          console.log("Reservation inserted successfully:", insertedData)
 
           const { error: deleteError } = await supabase
             .from('reservations_pending')
             .delete()
             .eq('ref_command', ref)
 
-          console.log("9. Nettoyage des données temporaires:", {
-            success: !deleteError,
-            error: deleteError?.message
-          })
-
           if (deleteError) {
-            console.error('Attention: Erreur lors de la suppression de la réservation en attente:', deleteError)
+            console.warn('Warning: Error deleting pending reservation:', deleteError)
           }
 
           return new Response(
-            JSON.stringify({ success: true }),
+            JSON.stringify({ success: true, message: 'Réservation validée avec succès' }),
             {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 200
             }
           )
         } catch (error) {
-          console.error("10. Erreur critique lors du transfert de la réservation:", error)
+          console.error("Critical error processing webhook:", error)
           throw error
         }
       } else {
+        console.error("Invalid API credentials in webhook")
         throw new Error('Identifiants API invalides')
       }
+    } else {
+      console.log("Ignoring non-sale_complete event:", body.type_event)
+      return new Response(
+        JSON.stringify({ status: 'ignored', message: 'Event type non traité' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      )
     }
-
-    throw new Error('Type d\'événement invalide')
   } catch (error) {
-    console.error("11. Erreur globale du webhook:", {
-      message: error.message,
-      stack: error.stack
-    })
+    console.error("Webhook processing error:", error)
     return new Response(
       JSON.stringify({ 
         error: error.message,
