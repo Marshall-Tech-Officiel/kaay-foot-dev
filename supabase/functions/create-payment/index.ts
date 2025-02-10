@@ -57,8 +57,8 @@ serve(async (req) => {
     })
 
     const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
-    // We will use paytech-webhook for both IPN and success callback
     const webhookUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook`
+    const successUrl = `${baseUrl}/payment/callback` // URL de callback spécifique
     const cancelUrl = cancel_url || `${baseUrl}/reserviste/accueil`
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
@@ -75,6 +75,7 @@ serve(async (req) => {
       apiKeyExists: !!apiKey,
       apiSecretExists: !!apiSecret,
       webhookUrl,
+      successUrl,
       cancelUrl
     })
 
@@ -109,7 +110,7 @@ serve(async (req) => {
       command_name: `Réservation ${terrain_name} - ${reservation_date} (${reservation_hours})`,
       env: "prod",
       ipn_url: webhookUrl,
-      success_url: webhookUrl, // Using the same webhook URL
+      success_url: successUrl,
       cancel_url: cancelUrl,
       custom_field: JSON.stringify(customField)
     }
