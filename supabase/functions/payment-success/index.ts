@@ -55,6 +55,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Fetch the pending reservation
     const { data: pendingReservation, error: fetchError } = await supabase
       .from('reservations_pending')
       .select('*')
@@ -71,6 +72,7 @@ serve(async (req) => {
       throw new Error('Aucune réservation en attente trouvée pour cette référence')
     }
 
+    // Prepare data for insertion
     const dataToInsert = {
       ...pendingReservation.reservation_data,
       statut: 'validee',
@@ -79,6 +81,7 @@ serve(async (req) => {
 
     console.log('Data to insert:', dataToInsert)
 
+    // Insert into reservations table
     const { data: insertedReservation, error: insertError } = await supabase
       .from('reservations')
       .insert([dataToInsert])
@@ -92,6 +95,7 @@ serve(async (req) => {
 
     console.log('Inserted reservation:', insertedReservation)
 
+    // Delete from pending reservations
     const { error: deleteError } = await supabase
       .from('reservations_pending')
       .delete()
@@ -101,9 +105,19 @@ serve(async (req) => {
       console.error('Error deleting pending reservation:', deleteError)
     }
 
+    const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
+    const successRedirectUrl = customField.redirect_after_success || 
+                             `${baseUrl}/reserviste/reservations`
+    
+    console.log('Redirecting to:', successRedirectUrl)
+    
+    // Handle the response based on request type
     if (req.method === 'POST') {
       return new Response(
-        JSON.stringify({ success: true }), 
+        JSON.stringify({ 
+          success: true,
+          reservation: insertedReservation 
+        }), 
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
@@ -111,21 +125,18 @@ serve(async (req) => {
       )
     }
 
-    const redirectUrl = customField.redirect_after_success || 
-                       "https://preview--kaay-foot-dev.lovable.app/reserviste/reservations"
-    
-    console.log('Redirecting to:', redirectUrl)
-    
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': redirectUrl,
+        'Location': successRedirectUrl,
         ...corsHeaders
       }
     })
+
   } catch (error) {
     console.error('Global error:', error)
 
+    const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
     if (req.method === 'POST') {
       return new Response(
         JSON.stringify({ error: error.message }), 
@@ -139,8 +150,7 @@ serve(async (req) => {
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': 'https://preview--kaay-foot-dev.lovable.app/reserviste/accueil?error=' + 
-                   encodeURIComponent(error.message),
+        'Location': `${baseUrl}/reserviste/accueil?error=${encodeURIComponent(error.message)}`,
         ...corsHeaders
       }
     })
