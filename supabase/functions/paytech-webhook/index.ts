@@ -2,7 +2,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts"
-import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,18 +24,60 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Endpoint de test pour vérifier que le webhook est actif
-  if (req.method === 'GET') {
-    return new Response(
-      JSON.stringify({ status: 'webhook endpoint active', timestamp: new Date().toISOString() }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    )
-  }
+  const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
 
   try {
+    // Handle GET requests (redirects from PayTech success_url)
+    if (req.method === 'GET') {
+      console.log("Processing GET request (success redirect)")
+      const url = new URL(req.url)
+      const token = url.searchParams.get('token')
+      
+      if (!token) {
+        console.error("No token provided in success redirect")
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': `${baseUrl}/reserviste/accueil?error=no_token`,
+            ...corsHeaders
+          }
+        })
+      }
+
+      // Find the pending reservation by PayTech token
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+
+      const { data: pendingReservation, error: fetchError } = await supabase
+        .from('reservations_pending')
+        .select('*')
+        .eq('paytech_token', token)
+        .single()
+
+      if (fetchError || !pendingReservation) {
+        console.error("Error finding pending reservation:", fetchError)
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': `${baseUrl}/reserviste/accueil?error=reservation_not_found`,
+            ...corsHeaders
+          }
+        })
+      }
+
+      // Redirect to success page
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${baseUrl}/reserviste/reservations?success=true`,
+          ...corsHeaders
+        }
+      })
+    }
+
+    // Handle POST requests (IPN notifications)
     const rawBody = await req.text()
     console.log("Raw webhook payload:", rawBody)
     
@@ -84,80 +125,50 @@ serve(async (req) => {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        // Check both pending and confirmed reservations
+        // Get the pending reservation
         const { data: pendingReservation, error: fetchError } = await supabase
           .from('reservations_pending')
           .select('*')
           .eq('ref_command', ref)
           .single()
 
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
+        if (fetchError) {
           console.error("Error fetching pending reservation:", fetchError)
           throw new Error(`Erreur lors de la récupération de la réservation: ${fetchError.message}`)
         }
 
-        if (pendingReservation) {
-          // If still pending, move to confirmed reservations
-          const dataToInsert = {
-            ...pendingReservation.reservation_data,
-            statut: 'validee',
-            payment_status: 'completed',
-            payment_ref: ref,
-            payment_details: body
-          }
+        if (!pendingReservation) {
+          console.error("No pending reservation found for ref:", ref)
+          throw new Error('Aucune réservation en attente trouvée')
+        }
 
-          console.log("Inserting reservation:", dataToInsert)
+        // Move the reservation to the confirmed table
+        const dataToInsert = {
+          ...pendingReservation.reservation_data,
+          statut: 'validee',
+          payment_status: 'completed',
+          payment_ref: ref,
+          payment_details: body
+        }
 
-          const { data: insertedReservation, error: insertError } = await supabase
-            .from('reservations')
-            .insert([dataToInsert])
-            .select()
-            .single()
+        console.log("Inserting confirmed reservation:", dataToInsert)
 
-          if (insertError) {
-            throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
-          }
+        const { error: insertError } = await supabase
+          .from('reservations')
+          .insert([dataToInsert])
 
-          console.log("Reservation inserted successfully:", insertedReservation)
+        if (insertError) {
+          throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
+        }
 
-          // Clean up pending reservation
-          const { error: deleteError } = await supabase
-            .from('reservations_pending')
-            .delete()
-            .eq('ref_command', ref)
+        // Clean up the pending reservation
+        const { error: deleteError } = await supabase
+          .from('reservations_pending')
+          .delete()
+          .eq('ref_command', ref)
 
-          if (deleteError) {
-            console.warn('Warning: Error deleting pending reservation:', deleteError)
-          }
-        } else {
-          // Update existing reservation if already confirmed
-          const { data: existingReservation, error: existingError } = await supabase
-            .from('reservations')
-            .select('*')
-            .eq('ref_paiement', ref)
-            .single()
-
-          if (existingError && existingError.code !== 'PGRST116') {
-            throw new Error(`Erreur lors de la vérification de la réservation existante: ${existingError.message}`)
-          }
-
-          if (existingReservation) {
-            const { error: updateError } = await supabase
-              .from('reservations')
-              .update({
-                payment_status: 'completed',
-                payment_details: body
-              })
-              .eq('ref_paiement', ref)
-
-            if (updateError) {
-              throw new Error(`Erreur lors de la mise à jour de la réservation: ${updateError.message}`)
-            }
-
-            console.log("Existing reservation updated with webhook data")
-          } else {
-            console.warn("No reservation found for ref:", ref)
-          }
+        if (deleteError) {
+          console.warn('Warning: Error deleting pending reservation:', deleteError)
         }
 
         return new Response(
@@ -183,6 +194,15 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error("Webhook processing error:", error)
+    if (req.method === 'GET') {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${baseUrl}/reserviste/accueil?error=${encodeURIComponent(error.message)}`,
+          ...corsHeaders
+        }
+      })
+    }
     return new Response(
       JSON.stringify({ 
         error: error.message,
