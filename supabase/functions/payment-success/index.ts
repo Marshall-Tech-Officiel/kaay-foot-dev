@@ -76,7 +76,13 @@ serve(async (req) => {
     const dataToInsert = {
       ...pendingReservation.reservation_data,
       statut: 'validee',
-      ref_paiement: ref
+      payment_status: 'completed',
+      payment_ref: ref,
+      payment_details: {
+        ref: ref,
+        status: 'completed',
+        timestamp: new Date().toISOString()
+      }
     }
 
     console.log('Data to insert:', dataToInsert)

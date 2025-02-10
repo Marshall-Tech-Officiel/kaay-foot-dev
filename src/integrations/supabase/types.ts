@@ -194,6 +194,9 @@ export type Database = {
           id: string
           montant_total: number
           nombre_heures: number
+          payment_details: Json | null
+          payment_ref: string | null
+          payment_status: string | null
           ref_paiement: string | null
           reserviste_id: string | null
           statut: string
@@ -207,6 +210,9 @@ export type Database = {
           id?: string
           montant_total: number
           nombre_heures: number
+          payment_details?: Json | null
+          payment_ref?: string | null
+          payment_status?: string | null
           ref_paiement?: string | null
           reserviste_id?: string | null
           statut: string
@@ -220,6 +226,9 @@ export type Database = {
           id?: string
           montant_total?: number
           nombre_heures?: number
+          payment_details?: Json | null
+          payment_ref?: string | null
+          payment_status?: string | null
           ref_paiement?: string | null
           reserviste_id?: string | null
           statut?: string
@@ -247,18 +256,27 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          payment_details: Json | null
+          payment_ref: string | null
+          payment_status: string | null
           ref_command: string
           reservation_data: Json
         }
         Insert: {
           created_at?: string | null
           id?: string
+          payment_details?: Json | null
+          payment_ref?: string | null
+          payment_status?: string | null
           ref_command: string
           reservation_data: Json
         }
         Update: {
           created_at?: string | null
           id?: string
+          payment_details?: Json | null
+          payment_ref?: string | null
+          payment_status?: string | null
           ref_command?: string
           reservation_data?: Json
         }

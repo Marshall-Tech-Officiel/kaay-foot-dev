@@ -84,38 +84,31 @@ serve(async (req) => {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
+        // Check both pending and confirmed reservations
         const { data: pendingReservation, error: fetchError } = await supabase
           .from('reservations_pending')
           .select('*')
           .eq('ref_command', ref)
           .single()
 
-        if (fetchError) {
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
           console.error("Error fetching pending reservation:", fetchError)
-          throw new Error(`Erreur lors de la récupération de la réservation en attente: ${fetchError.message}`)
+          throw new Error(`Erreur lors de la récupération de la réservation: ${fetchError.message}`)
         }
 
-        if (!pendingReservation) {
-          console.warn("No pending reservation found for ref:", ref)
-          return new Response(
-            JSON.stringify({ status: 'success', message: 'Réservation déjà traitée' }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200
-            }
-          )
-        }
-
-        try {
+        if (pendingReservation) {
+          // If still pending, move to confirmed reservations
           const dataToInsert = {
             ...pendingReservation.reservation_data,
             statut: 'validee',
-            ref_paiement: ref
+            payment_status: 'completed',
+            payment_ref: ref,
+            payment_details: body
           }
 
           console.log("Inserting reservation:", dataToInsert)
 
-          const { data: insertedData, error: insertError } = await supabase
+          const { data: insertedReservation, error: insertError } = await supabase
             .from('reservations')
             .insert([dataToInsert])
             .select()
@@ -125,8 +118,9 @@ serve(async (req) => {
             throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
           }
 
-          console.log("Reservation inserted successfully:", insertedData)
+          console.log("Reservation inserted successfully:", insertedReservation)
 
+          // Clean up pending reservation
           const { error: deleteError } = await supabase
             .from('reservations_pending')
             .delete()
@@ -135,18 +129,44 @@ serve(async (req) => {
           if (deleteError) {
             console.warn('Warning: Error deleting pending reservation:', deleteError)
           }
+        } else {
+          // Update existing reservation if already confirmed
+          const { data: existingReservation, error: existingError } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('ref_paiement', ref)
+            .single()
 
-          return new Response(
-            JSON.stringify({ success: true, message: 'Réservation validée avec succès' }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200
+          if (existingError && existingError.code !== 'PGRST116') {
+            throw new Error(`Erreur lors de la vérification de la réservation existante: ${existingError.message}`)
+          }
+
+          if (existingReservation) {
+            const { error: updateError } = await supabase
+              .from('reservations')
+              .update({
+                payment_status: 'completed',
+                payment_details: body
+              })
+              .eq('ref_paiement', ref)
+
+            if (updateError) {
+              throw new Error(`Erreur lors de la mise à jour de la réservation: ${updateError.message}`)
             }
-          )
-        } catch (error) {
-          console.error("Critical error processing webhook:", error)
-          throw error
+
+            console.log("Existing reservation updated with webhook data")
+          } else {
+            console.warn("No reservation found for ref:", ref)
+          }
         }
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        )
       } else {
         console.error("Invalid API credentials in webhook")
         throw new Error('Identifiants API invalides')
