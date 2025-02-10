@@ -55,11 +55,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch the pending reservation
+    // Fetch the pending reservation using either ref_command or paytech_token
     const { data: pendingReservation, error: fetchError } = await supabase
       .from('reservations_pending')
       .select('*')
-      .eq('ref_command', ref)
+      .or(`ref_command.eq.${customField.ref_command},paytech_token.eq.${ref}`)
       .single()
 
     console.log('Pending reservation found:', pendingReservation)
@@ -105,7 +105,7 @@ serve(async (req) => {
     const { error: deleteError } = await supabase
       .from('reservations_pending')
       .delete()
-      .eq('ref_command', ref)
+      .eq('ref_command', customField.ref_command)
 
     if (deleteError) {
       console.error('Error deleting pending reservation:', deleteError)

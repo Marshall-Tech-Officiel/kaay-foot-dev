@@ -98,21 +98,6 @@ serve(async (req) => {
       throw new Error(`Database error: ${fetchError.message}`)
     }
 
-    if (!existingReservation) {
-      console.log("Creating new pending reservation")
-      const { error: insertError } = await supabase
-        .from('reservations_pending')
-        .insert([{
-          ref_command,
-          reservation_data: reservationData
-        }])
-
-      if (insertError) {
-        console.error("Error creating pending reservation:", insertError)
-        throw new Error(`Error creating reservation: ${insertError.message}`)
-      }
-    }
-
     const customField = {
       ref_command,
       reservationData,
@@ -173,6 +158,36 @@ serve(async (req) => {
     if (data.success !== 1) {
       console.error("PayTech unsuccessful response:", data)
       throw new Error(`PayTech error: ${JSON.stringify(data)}`)
+    }
+
+    // Store or update the pending reservation with the PayTech token
+    const reservationData = {
+      ref_command,
+      paytech_token: data.token,
+      reservation_data: reservationData
+    }
+
+    if (!existingReservation) {
+      console.log("Creating new pending reservation with PayTech token")
+      const { error: insertError } = await supabase
+        .from('reservations_pending')
+        .insert([reservationData])
+
+      if (insertError) {
+        console.error("Error creating pending reservation:", insertError)
+        throw new Error(`Error creating reservation: ${insertError.message}`)
+      }
+    } else {
+      console.log("Updating existing pending reservation with PayTech token")
+      const { error: updateError } = await supabase
+        .from('reservations_pending')
+        .update({ paytech_token: data.token })
+        .eq('ref_command', ref_command)
+
+      if (updateError) {
+        console.error("Error updating pending reservation:", updateError)
+        throw new Error(`Error updating reservation: ${updateError.message}`)
+      }
     }
 
     return new Response(

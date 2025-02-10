@@ -259,6 +259,7 @@ export type Database = {
           payment_details: Json | null
           payment_ref: string | null
           payment_status: string | null
+          paytech_token: string | null
           ref_command: string
           reservation_data: Json
         }
@@ -268,6 +269,7 @@ export type Database = {
           payment_details?: Json | null
           payment_ref?: string | null
           payment_status?: string | null
+          paytech_token?: string | null
           ref_command: string
           reservation_data: Json
         }
@@ -277,6 +279,7 @@ export type Database = {
           payment_details?: Json | null
           payment_ref?: string | null
           payment_status?: string | null
+          paytech_token?: string | null
           ref_command?: string
           reservation_data?: Json
         }
