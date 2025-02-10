@@ -36,7 +36,6 @@ serve(async (req) => {
 
   try {
     console.log("Processing request body...")
-    const requestData = await req.json() as PaymentRequest
     const { 
       amount, 
       ref_command, 
@@ -45,7 +44,7 @@ serve(async (req) => {
       reservation_hours, 
       reservationData,
       cancel_url 
-    } = requestData
+    } = await req.json() as PaymentRequest
 
     console.log("Request data:", {
       amount,
@@ -100,7 +99,6 @@ serve(async (req) => {
 
     const customField = {
       ref_command,
-      reservationData,
       redirect_after_success: `${baseUrl}/reserviste/reservations`
     }
 
@@ -161,7 +159,7 @@ serve(async (req) => {
     }
 
     // Store or update the pending reservation with the PayTech token
-    const reservationData = {
+    const pendingReservationData = {
       ref_command,
       paytech_token: data.token,
       reservation_data: reservationData
@@ -171,7 +169,7 @@ serve(async (req) => {
       console.log("Creating new pending reservation with PayTech token")
       const { error: insertError } = await supabase
         .from('reservations_pending')
-        .insert([reservationData])
+        .insert([pendingReservationData])
 
       if (insertError) {
         console.error("Error creating pending reservation:", insertError)
