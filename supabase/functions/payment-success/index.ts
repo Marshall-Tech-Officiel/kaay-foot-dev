@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -20,7 +21,6 @@ serve(async (req) => {
     let ref: string | null = null
     let customField: any = {}
 
-    // Check if it's a POST request from our frontend
     if (req.method === 'POST') {
       const body = await req.json()
       console.log("Request body:", body)
@@ -33,7 +33,6 @@ serve(async (req) => {
         console.error("Error parsing custom field from body:", error)
       }
     } else {
-      // Handle direct PayTech redirect
       const url = new URL(req.url)
       ref = url.searchParams.get('ref') || url.searchParams.get('token')
       try {
@@ -80,33 +79,28 @@ serve(async (req) => {
 
     console.log('Data to insert:', dataToInsert)
 
-    try {
-      const { data: insertedData, error: insertError } = await supabase
-        .from('reservations')
-        .insert([dataToInsert])
-        .select()
-        .single()
+    const { data: insertedReservation, error: insertError } = await supabase
+      .from('reservations')
+      .insert([dataToInsert])
+      .select()
+      .single()
 
-      console.log('Inserted reservation:', insertedData)
-      if (insertError) {
-        throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
-      }
-
-      const { error: deleteError } = await supabase
-        .from('reservations_pending')
-        .delete()
-        .eq('ref_command', ref)
-
-      if (deleteError) {
-        console.warn('Warning: Error deleting pending reservation:', deleteError)
-      }
-
-    } catch (error) {
-      console.error('Critical error during reservation transfer:', error)
-      throw error
+    if (insertError) {
+      console.error('Error inserting reservation:', insertError)
+      throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
     }
 
-    // If it's a POST request from our frontend, return JSON
+    console.log('Inserted reservation:', insertedReservation)
+
+    const { error: deleteError } = await supabase
+      .from('reservations_pending')
+      .delete()
+      .eq('ref_command', ref)
+
+    if (deleteError) {
+      console.error('Error deleting pending reservation:', deleteError)
+    }
+
     if (req.method === 'POST') {
       return new Response(
         JSON.stringify({ success: true }), 
@@ -117,7 +111,6 @@ serve(async (req) => {
       )
     }
 
-    // Otherwise, redirect (this handles direct PayTech redirects)
     const redirectUrl = customField.redirect_after_success || 
                        "https://preview--kaay-foot-dev.lovable.app/reserviste/reservations"
     
@@ -133,7 +126,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Global error:', error)
 
-    // If it's a POST request from our frontend, return JSON error
     if (req.method === 'POST') {
       return new Response(
         JSON.stringify({ error: error.message }), 
@@ -144,7 +136,6 @@ serve(async (req) => {
       )
     }
 
-    // Otherwise redirect with error (this handles direct PayTech redirects)
     return new Response(null, {
       status: 302,
       headers: {
