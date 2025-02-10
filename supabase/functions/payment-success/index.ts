@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -11,32 +10,45 @@ serve(async (req) => {
   console.log("=== PAYMENT SUCCESS FUNCTION STARTED ===")
   console.log("Request URL:", req.url)
   console.log("Request headers:", Object.fromEntries(req.headers.entries()))
+  console.log("Request method:", req.method)
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const url = new URL(req.url)
-    console.log("URL params:", url.searchParams.toString())
+    let ref: string | null = null
+    let customField: any = {}
 
-    // Récupération des paramètres
-    const ref = url.searchParams.get('ref') || url.searchParams.get('token')
-    console.log("Payment reference:", ref)
-
-    let customField
-    try {
-      const customFieldStr = url.searchParams.get('custom_field')
-      console.log("Custom field string:", customFieldStr)
-      customField = customFieldStr ? JSON.parse(customFieldStr) : {}
-      console.log("Parsed custom field:", customField)
-    } catch (error) {
-      console.error("Error parsing custom field:", error)
-      customField = {}
+    // Check if it's a POST request from our frontend
+    if (req.method === 'POST') {
+      const body = await req.json()
+      console.log("Request body:", body)
+      ref = body.ref
+      try {
+        customField = typeof body.custom_field === 'string' 
+          ? JSON.parse(body.custom_field)
+          : body.custom_field || {}
+      } catch (error) {
+        console.error("Error parsing custom field from body:", error)
+      }
+    } else {
+      // Handle direct PayTech redirect
+      const url = new URL(req.url)
+      ref = url.searchParams.get('ref') || url.searchParams.get('token')
+      try {
+        const customFieldStr = url.searchParams.get('custom_field')
+        customField = customFieldStr ? JSON.parse(customFieldStr) : {}
+      } catch (error) {
+        console.error("Error parsing custom field from URL:", error)
+      }
     }
 
+    console.log("Payment reference:", ref)
+    console.log("Custom field:", customField)
+
     if (!ref) {
-      throw new Error('Référence de paiement non trouvée dans l\'URL')
+      throw new Error('Référence de paiement non trouvée')
     }
 
     const supabase = createClient(
@@ -94,7 +106,18 @@ serve(async (req) => {
       throw error
     }
 
-    // URL de redirection finale
+    // If it's a POST request from our frontend, return JSON
+    if (req.method === 'POST') {
+      return new Response(
+        JSON.stringify({ success: true }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+
+    // Otherwise, redirect (this handles direct PayTech redirects)
     const redirectUrl = customField.redirect_after_success || 
                        "https://preview--kaay-foot-dev.lovable.app/reserviste/reservations"
     
@@ -109,7 +132,19 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('Global error:', error)
-    // En cas d'erreur, rediriger vers la page d'accueil avec un message d'erreur
+
+    // If it's a POST request from our frontend, return JSON error
+    if (req.method === 'POST') {
+      return new Response(
+        JSON.stringify({ error: error.message }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      )
+    }
+
+    // Otherwise redirect with error (this handles direct PayTech redirects)
     return new Response(null, {
       status: 302,
       headers: {

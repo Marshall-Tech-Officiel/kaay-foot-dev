@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@/components/ui/toaster"
@@ -24,6 +25,7 @@ import ReservisteAccueil from "@/pages/reserviste/Accueil"
 import ReservisteReservations from "@/pages/reserviste/Reservations"
 import ReservisteProfil from "@/pages/reserviste/Profile"
 import TerrainDetails from "@/pages/reserviste/TerrainDetails"
+import PaymentCallback from "@/pages/payment/PaymentCallback"
 import Error403 from "@/pages/Error403"
 import Error404 from "@/pages/Error404"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
@@ -50,6 +52,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/403" element={<Error403 />} />
           <Route path="/404" element={<Error404 />} />
+          <Route path="/payment/callback" element={<PaymentCallback />} />
 
           {/* Admin routes */}
           <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin"]} />}>

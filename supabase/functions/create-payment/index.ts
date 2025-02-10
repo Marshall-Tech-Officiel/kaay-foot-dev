@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -56,9 +55,8 @@ serve(async (req) => {
     })
 
     const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
-    // Rediriger vers la fonction payment-success au lieu du frontend
-    const successUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/payment-success`
-    const cancelUrl = `${baseUrl}/reserviste/accueil`
+    const successUrl = `${baseUrl}/payment/callback` // Updated to use the new callback route
+    const cancelUrl = cancel_url || `${baseUrl}/reserviste/accueil`
     const ipnUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook`
 
     const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
