@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+import type { LatLngExpression } from 'leaflet'
 
 // Fix for default marker icon in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -96,6 +97,7 @@ export default function TerrainDetails() {
 
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const hasCoordinates = terrain.latitude && terrain.longitude
+  const position: LatLngExpression = [terrain.latitude, terrain.longitude]
 
   return (
     <MainLayout>
@@ -160,16 +162,15 @@ export default function TerrainDetails() {
             <CardContent>
               <div className="h-[400px] w-full rounded-md overflow-hidden">
                 <MapContainer 
-                  center={[terrain.latitude, terrain.longitude]} 
+                  className="h-full w-full"
+                  center={position}
                   zoom={15} 
                   scrollWheelZoom={false}
-                  style={{ height: '100%', width: '100%' }}
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <Marker position={[terrain.latitude, terrain.longitude]}>
+                  <Marker position={position}>
                     <Popup>
                       {terrain.nom}<br />
                       {location}
