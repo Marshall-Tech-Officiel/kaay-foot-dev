@@ -14,36 +14,44 @@ export function useAuth() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (session?.user) {
-      // Fetch user role from profiles table
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .single()
-        .then(({ data, error }) => {
+    const handleSession = async () => {
+      if (session?.user) {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .single()
+
           if (error) {
             console.error("Error fetching user role:", error)
-            setRole("")
-            // If there's an error fetching the profile, sign out the user
-            supabase.auth.signOut().then(() => {
-              navigate('/login')
-              toast.error("Session expirée. Veuillez vous reconnecter.")
-            })
-          } else {
-            setRole(data?.role || "")
+            throw error
           }
+
+          setRole(data?.role || "")
           setIsLoading(false)
-        })
-    } else if (!sessionLoading) {
-      // If there's no session and we're not loading, clear everything
-      setRole("")
-      setIsLoading(false)
-      queryClient.clear()
-      navigate('/login')
+        } catch (error) {
+          console.error("Session handling error:", error)
+          // Clear everything and redirect to login
+          setRole("")
+          queryClient.clear()
+          await supabase.auth.signOut()
+          navigate('/login')
+          toast.error("Session expirée. Veuillez vous reconnecter.")
+        }
+      } else if (!sessionLoading) {
+        // If there's no session and we're not loading, clear everything
+        setRole("")
+        setIsLoading(false)
+        queryClient.clear()
+        navigate('/login')
+      }
     }
+
+    handleSession()
   }, [session, sessionLoading, navigate])
 
+  // Return both the user and role status
   return {
     user: session?.user || null,
     role,
