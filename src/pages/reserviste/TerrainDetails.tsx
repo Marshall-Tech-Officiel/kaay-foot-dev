@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
@@ -15,7 +14,6 @@ import { toast } from "sonner"
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import type { LatLngExpression } from 'leaflet'
 
 // Fix for default marker icon in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -98,7 +96,7 @@ export default function TerrainDetails() {
 
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const hasCoordinates = terrain.latitude && terrain.longitude
-  const position: LatLngExpression = [terrain.latitude || 0, terrain.longitude || 0]
+  const position: [number, number] = [terrain.latitude || 0, terrain.longitude || 0]
 
   const openGoogleMaps = () => {
     const url = `https://www.google.com/maps?q=${terrain.latitude},${terrain.longitude}`
@@ -177,7 +175,7 @@ export default function TerrainDetails() {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   <Marker position={position}>
-                    <Popup autoOpen={true}>
+                    <Popup open={true}>
                       <div className="space-y-2">
                         <div>
                           <strong>{terrain.nom}</strong><br />
