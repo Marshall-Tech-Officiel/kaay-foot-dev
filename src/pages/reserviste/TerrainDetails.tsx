@@ -9,6 +9,7 @@ import { TerrainCarousel } from "@/components/terrain/TerrainCarousel"
 import { TerrainRating } from "@/components/terrain/TerrainRating"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
 import { toast } from "sonner"
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -99,6 +100,11 @@ export default function TerrainDetails() {
   const hasCoordinates = terrain.latitude && terrain.longitude
   const position: LatLngExpression = [terrain.latitude || 0, terrain.longitude || 0]
 
+  const openGoogleMaps = () => {
+    const url = `https://www.google.com/maps?q=${terrain.latitude},${terrain.longitude}`
+    window.open(url, '_blank')
+  }
+
   return (
     <MainLayout>
       <div className="container mx-auto py-6 space-y-6">
@@ -171,9 +177,20 @@ export default function TerrainDetails() {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   <Marker position={position}>
-                    <Popup>
-                      {terrain.nom}<br />
-                      {location}
+                    <Popup autoOpen={true}>
+                      <div className="space-y-2">
+                        <div>
+                          <strong>{terrain.nom}</strong><br />
+                          {location}
+                        </div>
+                        <Button 
+                          size="sm" 
+                          className="w-full"
+                          onClick={openGoogleMaps}
+                        >
+                          Ouvrir dans Google Maps
+                        </Button>
+                      </div>
                     </Popup>
                   </Marker>
                 </MapContainer>
