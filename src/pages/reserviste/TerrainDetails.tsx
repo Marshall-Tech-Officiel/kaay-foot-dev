@@ -97,7 +97,7 @@ export default function TerrainDetails() {
 
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const hasCoordinates = terrain.latitude && terrain.longitude
-  const position: LatLngExpression = [terrain.latitude, terrain.longitude]
+  const position: LatLngExpression = [terrain.latitude || 0, terrain.longitude || 0]
 
   return (
     <MainLayout>
@@ -163,8 +163,8 @@ export default function TerrainDetails() {
               <div className="h-[400px] w-full rounded-md overflow-hidden">
                 <MapContainer 
                   className="h-full w-full"
-                  center={position}
-                  zoom={15} 
+                  defaultCenter={position}
+                  defaultZoom={15}
                   scrollWheelZoom={false}
                 >
                   <TileLayer
