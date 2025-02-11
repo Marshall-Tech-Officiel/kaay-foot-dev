@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
@@ -10,6 +11,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
 import { toast } from "sonner"
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix for default marker icon in react-leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+})
 
 export default function TerrainDetails() {
   const { id } = useParams()
@@ -83,6 +95,7 @@ export default function TerrainDetails() {
   }
 
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
+  const hasCoordinates = terrain.latitude && terrain.longitude
 
   return (
     <MainLayout>
@@ -137,6 +150,36 @@ export default function TerrainDetails() {
             </CardContent>
           </Card>
         </div>
+
+        {hasCoordinates && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Localisation</CardTitle>
+              <CardDescription>Retrouvez le terrain sur la carte</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px] w-full rounded-md overflow-hidden">
+                <MapContainer 
+                  center={[terrain.latitude, terrain.longitude]} 
+                  zoom={15} 
+                  scrollWheelZoom={false}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[terrain.latitude, terrain.longitude]}>
+                    <Popup>
+                      {terrain.nom}<br />
+                      {location}
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </MainLayout>
   )
