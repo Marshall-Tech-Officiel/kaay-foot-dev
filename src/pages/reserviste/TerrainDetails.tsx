@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { ReservationDialog } from "@/components/reservation/ReservationDialog"
 import { toast } from "sonner"
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import type { LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
@@ -97,7 +98,7 @@ export default function TerrainDetails() {
 
   const location = terrain.localisation || `${terrain.zone?.nom}, ${terrain.region?.nom}`
   const hasCoordinates = terrain.latitude && terrain.longitude
-  const position: [number, number] = [terrain.latitude || 0, terrain.longitude || 0]
+  const position: LatLngExpression = [terrain.latitude || 0, terrain.longitude || 0]
 
   const openGoogleMaps = () => {
     const url = `https://www.google.com/maps?q=${terrain.latitude},${terrain.longitude}`
