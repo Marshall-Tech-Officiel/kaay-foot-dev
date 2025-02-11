@@ -169,8 +169,8 @@ export default function TerrainDetails() {
               <div className="h-[400px] w-full rounded-md overflow-hidden">
                 <MapContainer 
                   className="h-full w-full"
-                  defaultCenter={position}
-                  defaultZoom={15}
+                  center={position}
+                  zoom={15}
                   scrollWheelZoom={false}
                 >
                   <TileLayer
