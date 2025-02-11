@@ -168,9 +168,9 @@ export default function TerrainDetails() {
             <CardContent>
               <div className="h-[400px] w-full rounded-md overflow-hidden">
                 <MapContainer 
-                  style={{ height: '100%', width: '100%' }}
-                  center={position}
-                  zoom={15}
+                  className="h-full w-full"
+                  defaultCenter={position}
+                  defaultZoom={15}
                   scrollWheelZoom={false}
                 >
                   <TileLayer
