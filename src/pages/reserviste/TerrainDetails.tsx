@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
@@ -158,7 +159,7 @@ export default function TerrainDetails() {
         </div>
 
         {hasCoordinates && (
-          <Card className="mt-6">
+          <Card className="mt-6 relative z-0">
             <CardHeader>
               <CardTitle>Localisation</CardTitle>
               <CardDescription>Retrouvez le terrain sur la carte</CardDescription>
@@ -166,7 +167,7 @@ export default function TerrainDetails() {
             <CardContent>
               <div className="h-[400px] w-full rounded-md overflow-hidden">
                 <MapContainer 
-                  className="h-full w-full"
+                  style={{ height: '100%', width: '100%' }}
                   center={position}
                   zoom={15}
                   scrollWheelZoom={false}
@@ -175,7 +176,7 @@ export default function TerrainDetails() {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   <Marker position={position}>
-                    <Popup open={true}>
+                    <Popup>
                       <div className="space-y-2">
                         <div>
                           <strong>{terrain.nom}</strong><br />
