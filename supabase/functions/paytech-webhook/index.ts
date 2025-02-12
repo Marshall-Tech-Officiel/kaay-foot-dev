@@ -43,8 +43,8 @@ serve(async (req) => {
     }
 
     // Verify PayTech credentials
-    const apiKey = Deno.env.get('PAYTECH_API_KEY')
-    const apiSecret = Deno.env.get('PAYTECH_API_SECRET')
+    const apiKey = Deno.env.get('508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7')
+    const apiSecret = Deno.env.get('2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed')
 
     if (!apiKey || !apiSecret) {
       throw new Error('Configuration PayTech manquante')
