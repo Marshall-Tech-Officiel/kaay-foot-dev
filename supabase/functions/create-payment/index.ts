@@ -36,7 +36,8 @@ serve(async (req) => {
 
     const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
     // Correction de l'URL IPN
-    const ipnUrl = "https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook";
+    const ipnUrl = "https://icuwltmlubwgbwszantw.functions.supabase.co/paytech-webhook";
+
     const successUrl = `${baseUrl}/payment/callback`
 
     const apiKey = Deno.env.get("PAYTECH_API_KEY")
