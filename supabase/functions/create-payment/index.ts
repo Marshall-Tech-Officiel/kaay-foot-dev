@@ -7,24 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface PaymentRequest {
-  amount: number
-  ref_command: string
-  terrain_name: string
-  reservation_date: string
-  reservation_hours: string
-  reservationData: {
-    terrain_id: string
-    reserviste_id: string
-    date_reservation: string
-    heure_debut: string
-    nombre_heures: number
-    montant_total: number
-    statut: string
-  }
-  cancel_url: string
-}
-
 serve(async (req) => {
   console.log("=== CREATE PAYMENT FUNCTION STARTED ===")
   console.log("Request method:", req.method)
@@ -35,6 +17,9 @@ serve(async (req) => {
   }
 
   try {
+    // Log start of request processing
+    console.log("Starting request processing...")
+    
     console.log("Processing request body...")
     const { 
       amount, 
@@ -44,9 +29,10 @@ serve(async (req) => {
       reservation_hours, 
       reservationData,
       cancel_url 
-    } = await req.json() as PaymentRequest
+    } = await req.json()
 
-    console.log("Request data:", {
+    // Log parsed request data
+    console.log("Parsed request data:", {
       amount,
       ref_command,
       terrain_name,
@@ -58,34 +44,39 @@ serve(async (req) => {
 
     const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
     const webhookUrl = `https://icuwltmlubwgbwszantw.supabase.co/functions/v1/paytech-webhook`
-    const successUrl = `${baseUrl}/payment/callback` // URL de callback spécifique
+    const successUrl = `${baseUrl}/payment/callback`
     const cancelUrl = cancel_url || `${baseUrl}/reserviste/accueil`
 
-    const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
-
+    // Verify PayTech credentials
     const apiKey = Deno.env.get("PAYTECH_API_KEY")
     const apiSecret = Deno.env.get("PAYTECH_API_SECRET")
+
+    console.log("PayTech credentials check:", {
+      apiKeyExists: !!apiKey,
+      apiSecretExists: !!apiSecret
+    })
 
     if (!apiKey || !apiSecret) {
       console.error("Missing PayTech credentials")
       throw new Error("Configuration PayTech manquante")
     }
 
-    console.log("PayTech configuration:", {
-      apiKeyExists: !!apiKey,
-      apiSecretExists: !!apiSecret,
-      webhookUrl,
-      successUrl,
-      cancelUrl
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    console.log("Supabase configuration:", {
+      urlExists: !!supabaseUrl,
+      keyExists: !!supabaseKey
     })
 
-    // Create Supabase client
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseUrl ?? '',
+      supabaseKey ?? ''
     )
 
-    console.log("Checking existing pending reservations for:", ref_command)
+    // Check for existing reservation
+    console.log("Checking existing reservation for ref:", ref_command)
     const { data: existingReservation, error: fetchError } = await supabase
       .from('reservations_pending')
       .select('*')
@@ -93,10 +84,13 @@ serve(async (req) => {
       .maybeSingle()
 
     if (fetchError) {
-      console.error("Error checking pending reservations:", fetchError)
+      console.error("Error checking existing reservation:", fetchError)
       throw new Error(`Database error: ${fetchError.message}`)
     }
 
+    console.log("Existing reservation check result:", existingReservation)
+
+    // Prepare PayTech request
     const customField = {
       ref_command,
       redirect_after_success: `${baseUrl}/reserviste/reservations`
@@ -115,8 +109,12 @@ serve(async (req) => {
       custom_field: JSON.stringify(customField)
     }
 
-    console.log("PayTech request params:", params)
+    console.log("PayTech request preparation:", params)
 
+    // Make PayTech request
+    console.log("Initiating PayTech request...")
+    const paymentRequestUrl = "https://paytech.sn/api/payment/request-payment"
+    
     const headers = {
       "Accept": "application/json",
       "Content-Type": "application/json",
@@ -124,12 +122,14 @@ serve(async (req) => {
       "API_SECRET": apiSecret,
     }
 
-    console.log("Sending request to PayTech...")
     const response = await fetch(paymentRequestUrl, {
       method: "POST",
       headers,
       body: JSON.stringify(params)
     })
+
+    console.log("PayTech response status:", response.status)
+    console.log("PayTech response headers:", Object.fromEntries(response.headers.entries()))
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -141,6 +141,7 @@ serve(async (req) => {
       throw new Error(`PayTech error: ${errorText}`)
     }
 
+    // Parse PayTech response
     const responseText = await response.text()
     console.log("PayTech raw response:", responseText)
 
@@ -158,7 +159,7 @@ serve(async (req) => {
       throw new Error(`PayTech error: ${JSON.stringify(data)}`)
     }
 
-    // Store or update the pending reservation with the PayTech token
+    // Store pending reservation
     const pendingReservationData = {
       ref_command,
       paytech_token: data.token,
@@ -166,7 +167,7 @@ serve(async (req) => {
     }
 
     if (!existingReservation) {
-      console.log("Creating new pending reservation with PayTech token")
+      console.log("Creating new pending reservation:", pendingReservationData)
       const { error: insertError } = await supabase
         .from('reservations_pending')
         .insert([pendingReservationData])
@@ -176,7 +177,10 @@ serve(async (req) => {
         throw new Error(`Error creating reservation: ${insertError.message}`)
       }
     } else {
-      console.log("Updating existing pending reservation with PayTech token")
+      console.log("Updating existing reservation:", {
+        ref_command,
+        new_token: data.token
+      })
       const { error: updateError } = await supabase
         .from('reservations_pending')
         .update({ paytech_token: data.token })
@@ -188,6 +192,7 @@ serve(async (req) => {
       }
     }
 
+    console.log("Successfully completed payment creation")
     return new Response(
       JSON.stringify(data),
       { 
