@@ -95,6 +95,27 @@ export type Database = {
           },
         ]
       }
+      payment_history: {
+        Row: {
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          payload: Json
+          processed_at?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
       photos_terrain: {
         Row: {
           created_at: string | null
@@ -188,6 +209,8 @@ export type Database = {
       }
       reservations: {
         Row: {
+          client_phone: string | null
+          confirmed_at: string | null
           created_at: string | null
           date_reservation: string
           heure_debut: string
@@ -195,6 +218,7 @@ export type Database = {
           montant_total: number
           nombre_heures: number
           payment_details: Json | null
+          payment_method: string | null
           payment_ref: string | null
           payment_status: string | null
           ref_paiement: string | null
@@ -204,6 +228,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          client_phone?: string | null
+          confirmed_at?: string | null
           created_at?: string | null
           date_reservation: string
           heure_debut: string
@@ -211,6 +237,7 @@ export type Database = {
           montant_total: number
           nombre_heures: number
           payment_details?: Json | null
+          payment_method?: string | null
           payment_ref?: string | null
           payment_status?: string | null
           ref_paiement?: string | null
@@ -220,6 +247,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          client_phone?: string | null
+          confirmed_at?: string | null
           created_at?: string | null
           date_reservation?: string
           heure_debut?: string
@@ -227,6 +256,7 @@ export type Database = {
           montant_total?: number
           nombre_heures?: number
           payment_details?: Json | null
+          payment_method?: string | null
           payment_ref?: string | null
           payment_status?: string | null
           ref_paiement?: string | null
