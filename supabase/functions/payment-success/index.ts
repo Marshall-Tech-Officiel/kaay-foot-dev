@@ -18,8 +18,8 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('https://icuwltmlubwgbwszantw.supabase.co') ?? '',
+      Deno.env.get('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdXdsdG1sdWJ3Z2J3c3phbnR3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNTI4NTUzMywiZXhwIjoyMDUwODYxNTMzfQ.0f3ThvSjldbSrVe0DaWZ4Qvj10LuFoxq9XjlHtRHFbc') ?? ''
     )
 
     // Get ref from URL params or request body
