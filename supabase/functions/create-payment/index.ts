@@ -39,8 +39,8 @@ serve(async (req) => {
     const ipnUrl = "https://icuwltmlubwgbwszantw.functions.supabase.co/paytech-webhook"
     const successUrl = `${baseUrl}/payment/callback`
 
-    const apiKey = Deno.env.get("PAYTECH_API_KEY")
-    const apiSecret = Deno.env.get("PAYTECH_API_SECRET")
+    const apiKey = Deno.env.get("508d30ed892ec5b51c3f8055e10e4e4d12d0c61a4a578ca29d42abf4ebe2efd7")
+    const apiSecret = Deno.env.get("2a1fb92617596d861d05c974e3a29d06a1ee8e34bd489ab2e46ed39a612260ed")
 
     if (!apiKey || !apiSecret) {
       throw new Error("Configuration PayTech manquante")
@@ -95,8 +95,8 @@ serve(async (req) => {
 
     // Store payment request in history
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('https://icuwltmlubwgbwszantw.supabase.co') ?? '',
+      Deno.env.get('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdXdsdG1sdWJ3Z2J3c3phbnR3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNTI4NTUzMywiZXhwIjoyMDUwODYxNTMzfQ.0f3ThvSjldbSrVe0DaWZ4Qvj10LuFoxq9XjlHtRHFbc') ?? ''
     )
 
     const { error: historyError } = await supabase
