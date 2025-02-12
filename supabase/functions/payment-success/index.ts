@@ -8,9 +8,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log("=== PAYMENT SUCCESS FUNCTION STARTED ===")
+  console.log("=== PAYMENT SUCCESS HANDLER STARTED ===")
   console.log("Request URL:", req.url)
-  console.log("Request headers:", Object.fromEntries(req.headers.entries()))
   console.log("Request method:", req.method)
 
   if (req.method === 'OPTIONS') {
@@ -18,6 +17,12 @@ serve(async (req) => {
   }
 
   try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Get ref from URL params or request body
     let ref: string | null = null
     let customField: any = {}
 
@@ -30,7 +35,7 @@ serve(async (req) => {
           ? JSON.parse(body.custom_field)
           : body.custom_field || {}
       } catch (error) {
-        console.error("Error parsing custom field from body:", error)
+        console.error("Error parsing custom field:", error)
       }
     } else {
       const url = new URL(req.url)
@@ -39,7 +44,7 @@ serve(async (req) => {
         const customFieldStr = url.searchParams.get('custom_field')
         customField = customFieldStr ? JSON.parse(customFieldStr) : {}
       } catch (error) {
-        console.error("Error parsing custom field from URL:", error)
+        console.error("Error parsing custom field:", error)
       }
     }
 
@@ -50,113 +55,46 @@ serve(async (req) => {
       throw new Error('Référence de paiement non trouvée')
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    // Store callback in history
+    await supabase
+      .from('payment_history')
+      .insert([{
+        event_type: 'success_callback',
+        payload: { ref, custom_field: customField }
+      }])
 
-    // Fetch the pending reservation using either ref_command or paytech_token
-    const { data: pendingReservation, error: fetchError } = await supabase
+    // Check pending reservation
+    const { data: pendingReservation } = await supabase
       .from('reservations_pending')
       .select('*')
-      .or(`ref_command.eq.${customField.ref_command},paytech_token.eq.${ref}`)
-      .single()
-
-    console.log('Pending reservation found:', pendingReservation)
-    if (fetchError) {
-      console.error('Error fetching pending reservation:', fetchError)
-      throw new Error(`Erreur lors de la récupération de la réservation en attente: ${fetchError.message}`)
-    }
+      .eq('ref_command', customField.ref_command)
+      .maybeSingle()
 
     if (!pendingReservation) {
-      throw new Error('Aucune réservation en attente trouvée pour cette référence')
-    }
-
-    // Prepare data for insertion
-    const dataToInsert = {
-      ...pendingReservation.reservation_data,
-      statut: 'validee',
-      payment_status: 'completed',
-      payment_ref: ref,
-      payment_details: {
-        ref: ref,
-        status: 'completed',
-        timestamp: new Date().toISOString()
-      }
-    }
-
-    console.log('Data to insert:', dataToInsert)
-
-    // Insert into reservations table
-    const { data: insertedReservation, error: insertError } = await supabase
-      .from('reservations')
-      .insert([dataToInsert])
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Error inserting reservation:', insertError)
-      throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
-    }
-
-    console.log('Inserted reservation:', insertedReservation)
-
-    // Delete from pending reservations
-    const { error: deleteError } = await supabase
-      .from('reservations_pending')
-      .delete()
-      .eq('ref_command', customField.ref_command)
-
-    if (deleteError) {
-      console.error('Error deleting pending reservation:', deleteError)
-    }
-
-    const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
-    const successRedirectUrl = customField.redirect_after_success || 
-                             `${baseUrl}/reserviste/reservations`
-    
-    console.log('Redirecting to:', successRedirectUrl)
-    
-    // Handle the response based on request type
-    if (req.method === 'POST') {
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          reservation: insertedReservation 
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
+      console.log('No pending reservation found, assuming already processed')
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${customField.redirect_after_success || '/reserviste/reservations'}`,
+          ...corsHeaders
         }
-      )
+      })
     }
 
+    // Redirect to success page
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': successRedirectUrl,
+        'Location': `${customField.redirect_after_success || '/reserviste/reservations'}`,
         ...corsHeaders
       }
     })
-
   } catch (error) {
-    console.error('Global error:', error)
-
-    const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
-    if (req.method === 'POST') {
-      return new Response(
-        JSON.stringify({ error: error.message }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      )
-    }
-
+    console.error('Payment success error:', error)
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${baseUrl}/reserviste/accueil?error=${encodeURIComponent(error.message)}`,
+        'Location': '/reserviste/accueil?error=' + encodeURIComponent(error.message),
         ...corsHeaders
       }
     })
