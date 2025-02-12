@@ -3,214 +3,249 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts"
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Types
+interface PaymentRequest {
+  amount: number
+  ref_command: string
+  terrain_name: string
+  reservation_date: string
+  reservation_hours: string
+  reservationData: {
+    terrain_id: string
+    reserviste_id: string
+    date_reservation: string
+    heure_debut: string
+    nombre_heures: number
+    montant_total: number
+    statut: string
+  }
+  cancel_url: string
+}
+
+interface WebhookResponse {
+  type_event: string
+  ref_command?: string
+  custom_field?: string
+  api_key_sha256: string
+  api_secret_sha256: string
+  payment_method: string
+  client_phone: string
+  [key: string]: any
+}
+
+// Configuration
+const CONFIG = {
+  baseUrl: "https://preview--kaay-foot-dev.lovable.app",
+  maxRetries: 3,
+  retryDelay: 1000,
+  timeoutDuration: 30000, // 30 seconds
+}
+
+// Utilitaires
+class PaymentError extends Error {
+  constructor(message: string, public code: string, public details?: any) {
+    super(message)
+    this.name = 'PaymentError'
+  }
 }
 
 async function sha256(message: string): Promise<string> {
-  const msgUint8 = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const msgUint8 = new TextEncoder().encode(message)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+// Service de base de données
+class DatabaseService {
+  private supabase
+  private retryCount = 0
+
+  constructor() {
+    this.supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+  }
+
+  async getPendingReservation(ref: string): Promise<any> {
+    const { data, error } = await this.supabase
+      .from('reservations_pending')
+      .select('*')
+      .or(`ref_command.eq.${ref},paytech_token.eq.${ref}`)
+      .single()
+
+    if (error) {
+      console.error('Error fetching pending reservation:', error)
+      throw new PaymentError(
+        'Erreur lors de la récupération de la réservation',
+        'DB_FETCH_ERROR',
+        error
+      )
+    }
+
+    return data
+  }
+
+  async createReservation(data: any): Promise<any> {
+    try {
+      const { data: reservation, error } = await this.supabase
+        .from('reservations')
+        .insert([data])
+        .select()
+        .single()
+
+      if (error) throw error
+      return reservation
+    } catch (error) {
+      if (this.retryCount < CONFIG.maxRetries) {
+        this.retryCount++
+        console.log(`Retry attempt ${this.retryCount} for createReservation`)
+        await new Promise(resolve => setTimeout(resolve, CONFIG.retryDelay))
+        return this.createReservation(data)
+      }
+      throw new PaymentError(
+        'Erreur lors de la création de la réservation',
+        'DB_INSERT_ERROR',
+        error
+      )
+    }
+  }
+
+  async deletePendingReservation(ref: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('reservations_pending')
+      .delete()
+      .eq('ref_command', ref)
+
+    if (error) {
+      console.warn('Warning: Could not delete pending reservation:', error)
+    }
+  }
+}
+
+// Service de paiement
+class PaymentService {
+  private db: DatabaseService
+  
+  constructor() {
+    this.db = new DatabaseService()
+  }
+
+  async verifyPaytechCredentials(webhookData: WebhookResponse): Promise<boolean> {
+    const apiKey = Deno.env.get('PAYTECH_API_KEY')
+    const apiSecret = Deno.env.get('PAYTECH_API_SECRET')
+
+    if (!apiKey || !apiSecret) {
+      throw new PaymentError('Configuration PayTech manquante', 'CONFIG_ERROR')
+    }
+
+    const apiKeyHash = await sha256(apiKey)
+    const apiSecretHash = await sha256(apiSecret)
+
+    return (
+      apiKeyHash === webhookData.api_key_sha256 &&
+      apiSecretHash === webhookData.api_secret_sha256
+    )
+  }
+
+  async processPaymentWebhook(webhookData: WebhookResponse): Promise<any> {
+    console.log('Processing webhook data:', webhookData)
+
+    if (webhookData.type_event !== 'sale_complete') {
+      console.log('Ignoring non-sale_complete event:', webhookData.type_event)
+      return { status: 'ignored', message: 'Event type non traité' }
+    }
+
+    const isValid = await this.verifyPaytechCredentials(webhookData)
+    if (!isValid) {
+      throw new PaymentError('Identifiants PayTech invalides', 'AUTH_ERROR')
+    }
+
+    const ref = webhookData.ref_command || 
+                (typeof webhookData.custom_field === 'string' ? 
+                  JSON.parse(webhookData.custom_field).ref_command : 
+                  webhookData.custom_field?.ref_command)
+
+    if (!ref) {
+      throw new PaymentError('Référence de commande manquante', 'MISSING_REF')
+    }
+
+    const pendingReservation = await this.db.getPendingReservation(ref)
+    if (!pendingReservation) {
+      throw new PaymentError('Réservation en attente non trouvée', 'NOT_FOUND')
+    }
+
+    const reservationData = {
+      ...pendingReservation.reservation_data,
+      statut: 'validee',
+      payment_status: 'completed',
+      payment_ref: ref,
+      payment_method: webhookData.payment_method,
+      client_phone: webhookData.client_phone,
+      payment_details: webhookData,
+      confirmed_at: new Date().toISOString()
+    }
+
+    const confirmedReservation = await this.db.createReservation(reservationData)
+    await this.db.deletePendingReservation(ref)
+
+    return confirmedReservation
+  }
+}
+
+// Handler principal
 serve(async (req) => {
-  console.log("=== PAYTECH WEBHOOK FUNCTION STARTED ===")
-  console.log("Request method:", req.method)
-  console.log("Request headers:", Object.fromEntries(req.headers.entries()))
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  const baseUrl = "https://preview--kaay-foot-dev.lovable.app"
+  console.log('=== PAYTECH WEBHOOK HANDLER STARTED ===')
+  console.log('Request method:', req.method)
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()))
 
   try {
-    // Handle GET requests (redirects from PayTech success_url)
-    if (req.method === 'GET') {
-      console.log("Processing GET request (success redirect)")
-      const url = new URL(req.url)
-      const token = url.searchParams.get('token')
-      
-      if (!token) {
-        console.error("No token provided in success redirect")
-        return new Response(null, {
-          status: 302,
-          headers: {
-            'Location': `${baseUrl}/reserviste/accueil?error=no_token`,
-            ...corsHeaders
-          }
-        })
-      }
+    // Timeout handler
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new PaymentError('Request timeout', 'TIMEOUT')), CONFIG.timeoutDuration)
+    })
 
-      // Find the pending reservation by PayTech token
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
+    const webhookData = await Promise.race([
+      req.json(),
+      timeoutPromise
+    ]) as WebhookResponse
 
-      const { data: pendingReservation, error: fetchError } = await supabase
-        .from('reservations_pending')
-        .select('*')
-        .eq('paytech_token', token)
-        .single()
+    const paymentService = new PaymentService()
+    const result = await paymentService.processPaymentWebhook(webhookData)
 
-      if (fetchError || !pendingReservation) {
-        console.error("Error finding pending reservation:", fetchError)
-        return new Response(null, {
-          status: 302,
-          headers: {
-            'Location': `${baseUrl}/reserviste/accueil?error=reservation_not_found`,
-            ...corsHeaders
-          }
-        })
-      }
-
-      // Redirect to success page
-      return new Response(null, {
-        status: 302,
-        headers: {
-          'Location': `${baseUrl}/reserviste/reservations?success=true`,
-          ...corsHeaders
-        }
-      })
-    }
-
-    // Handle POST requests (IPN notifications)
-    const rawBody = await req.text()
-    console.log("Raw webhook payload:", rawBody)
-    
-    let body
-    try {
-      body = JSON.parse(rawBody)
-      console.log("Parsed webhook payload:", body)
-    } catch (e) {
-      console.error("Error parsing webhook payload:", e)
-      throw new Error("Invalid JSON payload")
-    }
-
-    if (body.type_event === 'sale_complete') {
-      const my_api_key = Deno.env.get('PAYTECH_API_KEY')
-      const my_api_secret = Deno.env.get('PAYTECH_API_SECRET')
-      
-      if (!my_api_key || !my_api_secret) {
-        console.error('Missing API credentials')
-        throw new Error('API credentials not configured')
-      }
-
-      const api_key_hash = await sha256(my_api_key)
-      const api_secret_hash = await sha256(my_api_secret)
-
-      console.log("Hash verification:", {
-        received_key_hash: body.api_key_sha256,
-        calculated_key_hash: api_key_hash,
-        key_match: api_key_hash === body.api_key_sha256,
-        secret_match: api_secret_hash === body.api_secret_sha256
-      })
-
-      if (
-        api_key_hash === body.api_key_sha256 && 
-        api_secret_hash === body.api_secret_sha256
-      ) {
-        const ref = body.ref_command || body.custom_field?.ref_command
-        if (!ref) {
-          throw new Error('Référence non trouvée dans les données du webhook')
-        }
-
-        console.log("Processing payment for ref:", ref)
-
-        const supabase = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
-
-        // Get the pending reservation
-        const { data: pendingReservation, error: fetchError } = await supabase
-          .from('reservations_pending')
-          .select('*')
-          .eq('ref_command', ref)
-          .single()
-
-        if (fetchError) {
-          console.error("Error fetching pending reservation:", fetchError)
-          throw new Error(`Erreur lors de la récupération de la réservation: ${fetchError.message}`)
-        }
-
-        if (!pendingReservation) {
-          console.error("No pending reservation found for ref:", ref)
-          throw new Error('Aucune réservation en attente trouvée')
-        }
-
-        // Move the reservation to the confirmed table
-        const dataToInsert = {
-          ...pendingReservation.reservation_data,
-          statut: 'validee',
-          payment_status: 'completed',
-          payment_ref: ref,
-          payment_details: body
-        }
-
-        console.log("Inserting confirmed reservation:", dataToInsert)
-
-        const { error: insertError } = await supabase
-          .from('reservations')
-          .insert([dataToInsert])
-
-        if (insertError) {
-          throw new Error(`Erreur lors de l'insertion de la réservation: ${insertError.message}`)
-        }
-
-        // Clean up the pending reservation
-        const { error: deleteError } = await supabase
-          .from('reservations_pending')
-          .delete()
-          .eq('ref_command', ref)
-
-        if (deleteError) {
-          console.warn('Warning: Error deleting pending reservation:', deleteError)
-        }
-
-        return new Response(
-          JSON.stringify({ success: true }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          }
-        )
-      } else {
-        console.error("Invalid API credentials in webhook")
-        throw new Error('Identifiants API invalides')
-      }
-    } else {
-      console.log("Ignoring non-sale_complete event:", body.type_event)
-      return new Response(
-        JSON.stringify({ status: 'ignored', message: 'Event type non traité' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      )
-    }
-  } catch (error) {
-    console.error("Webhook processing error:", error)
-    if (req.method === 'GET') {
-      return new Response(null, {
-        status: 302,
-        headers: {
-          'Location': `${baseUrl}/reserviste/accueil?error=${encodeURIComponent(error.message)}`,
-          ...corsHeaders
-        }
-      })
-    }
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: "Une erreur est survenue lors du traitement du webhook"
-      }),
-      {
+      JSON.stringify({ success: true, data: result }),
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        status: 200
+      }
+    )
+  } catch (error) {
+    console.error('Error processing webhook:', error)
+    
+    const statusCode = error instanceof PaymentError ? 400 : 500
+    const errorResponse = {
+      success: false,
+      error: error.message,
+      code: error instanceof PaymentError ? error.code : 'INTERNAL_ERROR',
+      details: error instanceof PaymentError ? error.details : undefined
+    }
+
+    return new Response(
+      JSON.stringify(errorResponse),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode
       }
     )
   }
